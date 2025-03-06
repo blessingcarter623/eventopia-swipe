@@ -162,6 +162,98 @@ export type Database = {
         }
         Relationships: []
       }
+      livestream_cameras: {
+        Row: {
+          camera_label: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          join_token: string
+          joined_at: string | null
+          left_at: string | null
+          livestream_id: string
+          user_id: string
+        }
+        Insert: {
+          camera_label: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          join_token: string
+          joined_at?: string | null
+          left_at?: string | null
+          livestream_id: string
+          user_id: string
+        }
+        Update: {
+          camera_label?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          join_token?: string
+          joined_at?: string | null
+          left_at?: string | null
+          livestream_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "livestream_cameras_livestream_id_fkey"
+            columns: ["livestream_id"]
+            isOneToOne: false
+            referencedRelation: "livestreams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      livestreams: {
+        Row: {
+          actual_end: string | null
+          actual_start: string | null
+          created_at: string
+          description: string | null
+          host_id: string
+          id: string
+          recording_url: string | null
+          scheduled_start: string | null
+          status: string
+          stream_key: string
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          actual_end?: string | null
+          actual_start?: string | null
+          created_at?: string
+          description?: string | null
+          host_id: string
+          id?: string
+          recording_url?: string | null
+          scheduled_start?: string | null
+          status?: string
+          stream_key: string
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          actual_end?: string | null
+          actual_start?: string | null
+          created_at?: string
+          description?: string | null
+          host_id?: string
+          id?: string
+          recording_url?: string | null
+          scheduled_start?: string | null
+          status?: string
+          stream_key?: string
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

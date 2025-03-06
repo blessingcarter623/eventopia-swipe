@@ -17,6 +17,9 @@ import OrganizerDashboard from "./pages/OrganizerDashboard";
 import CreateEventPage from "./pages/CreateEventPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import EditEventPage from "@/pages/EditEventPage";
+import LivestreamsList from "./pages/LivestreamsList";
+import LivestreamPage from "./pages/LivestreamPage";
+import CreateLivestream from "./pages/CreateLivestream";
 
 const queryClient = new QueryClient();
 
@@ -63,7 +66,18 @@ function App() {
                   <CreateEventPage />
                 </ProtectedRoute>
               } />
-              <Route path="/event/edit/:eventId" element={<ProtectedRoute><EditEventPage /></ProtectedRoute>} />
+              <Route path="/event/edit/:eventId" element={
+                <ProtectedRoute>
+                  <EditEventPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/livestreams" element={<LivestreamsList />} />
+              <Route path="/livestream/:livestreamId" element={<LivestreamPage />} />
+              <Route path="/create-livestream" element={
+                <ProtectedRoute requiredRole="organizer">
+                  <CreateLivestream />
+                </ProtectedRoute>
+              } />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

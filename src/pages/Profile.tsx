@@ -1,19 +1,34 @@
 
 import React, { useState, useEffect } from "react";
 import { NavigationBar } from "@/components/ui/navigation-bar";
-import { ArrowLeft, Settings, Share2, LogOut, LayoutDashboard } from "lucide-react";
+import { ArrowLeft, Settings, Share2, LogOut, LayoutDashboard, Wallet, CreditCard, ArrowDown, ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Event } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 const Profile = () => {
   const { profile, signOut, user } = useAuth();
-  const [activeTab, setActiveTab] = useState<"events" | "images" | "reels">("events");
+  const [activeTab, setActiveTab] = useState<"events" | "wallet">("events");
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  
+  // Mock data for wallet
+  const walletBalance = 1250.75;
+  const pendingPayouts = 450.25;
+  const totalEarnings = 3890.50;
+  const recentTransactions = [
+    { id: 1, event: "Summer Music Festival", amount: 750.00, date: "2024-03-15", status: "completed" },
+    { id: 2, event: "Tech Conference 2024", amount: 380.50, date: "2024-03-10", status: "completed" },
+    { id: 3, event: "Comedy Night Special", amount: 450.25, date: "2024-03-05", status: "pending" },
+  ];
   
   // Fetch user's events from Supabase
   const { data: userEvents = [], isLoading: isLoadingEvents } = useQuery({
@@ -69,6 +84,20 @@ const Profile = () => {
   const handleSignOut = async () => {
     await signOut();
     navigate("/login");
+  };
+
+  const handleWithdraw = () => {
+    setIsWithdrawing(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      setIsWithdrawing(false);
+      toast({
+        title: "Withdrawal Initiated",
+        description: `$${withdrawAmount} has been sent to your bank account. It may take 2-3 business days to process.`,
+      });
+      setWithdrawAmount("");
+    }, 1500);
   };
   
   if (!profile) {
@@ -176,16 +205,10 @@ const Profile = () => {
               Events
             </button>
             <button 
-              className={`flex-1 py-3 text-center font-medium ${activeTab === "images" ? "text-neon-yellow border-b-2 border-neon-yellow" : "text-gray-400"}`}
-              onClick={() => setActiveTab("images")}
+              className={`flex-1 py-3 text-center font-medium ${activeTab === "wallet" ? "text-neon-yellow border-b-2 border-neon-yellow" : "text-gray-400"}`}
+              onClick={() => setActiveTab("wallet")}
             >
-              Images
-            </button>
-            <button 
-              className={`flex-1 py-3 text-center font-medium ${activeTab === "reels" ? "text-neon-yellow border-b-2 border-neon-yellow" : "text-gray-400"}`}
-              onClick={() => setActiveTab("reels")}
-            >
-              Reels
+              Wallet
             </button>
           </div>
           
@@ -223,15 +246,117 @@ const Profile = () => {
               )
             )}
             
-            {activeTab === "images" && (
-              <div className="text-center py-10 text-gray-400">
-                <p>No images to display yet.</p>
-              </div>
-            )}
-            
-            {activeTab === "reels" && (
-              <div className="text-center py-10 text-gray-400">
-                <p>No reels to display yet.</p>
+            {activeTab === "wallet" && (
+              <div className="space-y-4 p-2">
+                {/* Wallet Overview */}
+                <div className="bg-gradient-to-r from-darkbg-lighter to-darkbg-card p-4 rounded-xl">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-white font-bold">Wallet Balance</h3>
+                    <Wallet className="text-neon-yellow w-5 h-5" />
+                  </div>
+                  
+                  <div className="mb-4">
+                    <p className="text-gray-400 text-sm">Available Balance</p>
+                    <p className="text-white text-2xl font-bold">${walletBalance.toFixed(2)}</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-darkbg/60 p-3 rounded-lg">
+                      <p className="text-gray-400 text-xs">Pending</p>
+                      <p className="text-white font-semibold">${pendingPayouts.toFixed(2)}</p>
+                    </div>
+                    <div className="bg-darkbg/60 p-3 rounded-lg">
+                      <p className="text-gray-400 text-xs">Total Earnings</p>
+                      <p className="text-white font-semibold">${totalEarnings.toFixed(2)}</p>
+                    </div>
+                  </div>
+                  
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="w-full mt-4 bg-neon-yellow text-black hover:bg-neon-yellow/90">
+                        Withdraw Funds
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px] bg-darkbg-lighter text-white border-gray-800">
+                      <DialogHeader>
+                        <DialogTitle className="text-white">Withdraw Funds</DialogTitle>
+                        <DialogDescription className="text-gray-400">
+                          Enter the amount you want to withdraw to your bank account.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label className="text-right col-span-1">Amount</Label>
+                          <div className="relative col-span-3">
+                            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                              <span className="text-gray-400">$</span>
+                            </div>
+                            <Input
+                              placeholder="0.00"
+                              className="pl-7 bg-darkbg border-gray-700 text-white"
+                              type="number"
+                              value={withdrawAmount}
+                              onChange={(e) => setWithdrawAmount(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label className="text-right col-span-1">Method</Label>
+                          <div className="col-span-3">
+                            <select 
+                              className="w-full rounded-md bg-darkbg border border-gray-700 text-white p-2"
+                            >
+                              <option value="bank">Bank Account (•••• 4567)</option>
+                              <option value="paypal">PayPal</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button 
+                          type="submit" 
+                          className="bg-neon-yellow text-black hover:bg-neon-yellow/90"
+                          onClick={handleWithdraw}
+                          disabled={!withdrawAmount || isWithdrawing || parseFloat(withdrawAmount) > walletBalance}
+                        >
+                          {isWithdrawing ? (
+                            <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-black"></div>
+                          ) : (
+                            "Withdraw"
+                          )}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                
+                {/* Recent Transactions */}
+                <div className="bg-darkbg-lighter p-4 rounded-xl">
+                  <h3 className="text-white font-bold mb-4">Recent Transactions</h3>
+                  
+                  {recentTransactions.map((transaction) => (
+                    <div 
+                      key={transaction.id} 
+                      className="flex justify-between items-center py-3 border-b border-gray-800 last:border-b-0"
+                    >
+                      <div>
+                        <p className="text-white font-medium">{transaction.event}</p>
+                        <p className="text-xs text-gray-400">{new Date(transaction.date).toLocaleDateString()}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`font-semibold ${transaction.status === 'pending' ? 'text-amber-400' : 'text-green-400'}`}>
+                          ${transaction.amount.toFixed(2)}
+                        </p>
+                        <p className="text-xs text-gray-400 capitalize">{transaction.status}</p>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  <Button variant="ghost" className="w-full mt-2 text-neon-yellow hover:text-neon-yellow/90 hover:bg-darkbg border border-gray-800">
+                    <ArrowRight className="w-4 h-4 mr-2" />
+                    View All Transactions
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -243,5 +368,12 @@ const Profile = () => {
     </div>
   );
 };
+
+// Custom Label component for the dialog
+const Label = ({ className, children, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) => (
+  <label className={`text-sm font-medium leading-none text-white ${className}`} {...props}>
+    {children}
+  </label>
+);
 
 export default Profile;

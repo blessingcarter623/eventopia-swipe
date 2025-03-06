@@ -1,9 +1,9 @@
 
-import React from "react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { X, Image } from "lucide-react";
+import React, { useState } from "react";
+import { Upload, X, Video, Image as ImageIcon } from "lucide-react";
 import { EventImageUploaderProps } from "@/types/event-form";
+import { Button } from "@/components/ui/button";
+import { SoundWave } from "@/components/ui/sound-wave";
 
 const EventImageUploader: React.FC<EventImageUploaderProps> = ({
   mediaFile,
@@ -11,59 +11,140 @@ const EventImageUploader: React.FC<EventImageUploaderProps> = ({
   previewUrl,
   setPreviewUrl,
 }) => {
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    
     if (file) {
       setMediaFile(file);
-      const fileReader = new FileReader();
-      fileReader.onload = () => {
-        setPreviewUrl(fileReader.result as string);
-      };
-      fileReader.readAsDataURL(file);
+      
+      // Create a preview URL
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
     }
   };
-
+  
+  const handleClear = () => {
+    setMediaFile(null);
+    
+    // If there's a preview URL from a local file, revoke it
+    if (previewUrl && !previewUrl.startsWith('http')) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    
+    setPreviewUrl(null);
+    setIsVideoPlaying(false);
+  };
+  
+  const isVideo = () => {
+    if (mediaFile && mediaFile.type.startsWith('video/')) {
+      return true;
+    }
+    // Check if the URL is a video (common video extensions)
+    if (previewUrl && !mediaFile) {
+      const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov'];
+      return videoExtensions.some(ext => previewUrl.toLowerCase().includes(ext));
+    }
+    return false;
+  };
+  
+  const toggleVideoPlay = (e: React.MouseEvent<HTMLVideoElement>) => {
+    const video = e.currentTarget;
+    if (isVideoPlaying) {
+      video.pause();
+    } else {
+      video.play().catch(err => console.error("Error playing video:", err));
+    }
+    setIsVideoPlaying(!isVideoPlaying);
+  };
+  
   return (
     <div className="space-y-2">
-      <Label htmlFor="image" className="text-white">Event Image</Label>
-      <div className="flex items-center space-x-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => document.getElementById('image-upload')?.click()}
-          className="bg-darkbg-lighter border-gray-700 text-white"
-        >
-          <Image className="mr-2 h-4 w-4" />
-          Choose Image
-        </Button>
-        <input
-          id="image-upload"
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          className="hidden"
-        />
-        {previewUrl && (
-          <div className="relative">
-            <img
-              src={previewUrl}
-              alt="Preview"
-              className="h-20 w-20 object-cover rounded-md"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 border-none text-white hover:bg-red-600"
-              onClick={() => {
-                setMediaFile(null);
-                setPreviewUrl(null);
-              }}
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          </div>
-        )}
+      <label className="block text-white mb-2">Event Media</label>
+      
+      {!previewUrl ? (
+        <div className="border-2 border-dashed border-gray-700 rounded-md p-8 text-center">
+          <input
+            type="file"
+            id="event-image"
+            onChange={handleChange}
+            className="hidden"
+            accept="image/*,video/*"
+          />
+          <label
+            htmlFor="event-image"
+            className="cursor-pointer flex flex-col items-center"
+          >
+            <Upload className="w-12 h-12 text-gray-400 mb-2" />
+            <p className="text-white mb-1">Drag and drop or click to upload</p>
+            <p className="text-gray-400 text-sm">JPG, PNG, GIF, MP4 or WebM</p>
+          </label>
+        </div>
+      ) : (
+        <div className="relative rounded-md overflow-hidden border border-gray-700">
+          {isVideo() ? (
+            <div className="relative aspect-video">
+              <video
+                src={previewUrl}
+                className="w-full h-full object-cover cursor-pointer"
+                onClick={toggleVideoPlay}
+                onPlay={() => setIsVideoPlaying(true)}
+                onPause={() => setIsVideoPlaying(false)}
+                onEnded={() => setIsVideoPlaying(false)}
+                playsInline
+              />
+              <div className="absolute bottom-3 left-3 z-10">
+                {isVideoPlaying && <SoundWave isPlaying={true} />}
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+              <div className="absolute top-3 right-3 z-10">
+                <Button
+                  size="icon"
+                  variant="destructive"
+                  className="h-8 w-8 rounded-full"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClear();
+                  }}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="relative aspect-video">
+              <img
+                src={previewUrl}
+                alt="Event preview"
+                className="w-full h-full object-cover"
+              />
+              <Button
+                size="icon"
+                variant="destructive"
+                className="h-8 w-8 rounded-full absolute top-3 right-3"
+                onClick={handleClear}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+      
+      <div className="flex justify-between text-sm text-gray-400 mt-1">
+        <span>
+          {isVideo() ? (
+            <span className="flex items-center">
+              <Video className="w-4 h-4 mr-1" /> Video
+            </span>
+          ) : (
+            <span className="flex items-center">
+              <ImageIcon className="w-4 h-4 mr-1" /> Image
+            </span>
+          )}
+        </span>
+        <span>Max size: 10MB</span>
       </div>
     </div>
   );

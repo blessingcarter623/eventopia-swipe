@@ -13,11 +13,18 @@ export interface EventFormData {
   price: string;
   tags: string[];
   mediaFile: File | null;
+  videoId?: string;
+  videoUrl?: string;
 }
 
 export interface TagInputProps {
   tags: string[];
   setTags: (tags: string[]) => void;
+  tagInput?: string;
+  setTagInput?: (input: string) => void;
+  addTag?: () => void;
+  removeTag?: (tag: string) => void;
+  handleTagKeyDown?: (e: React.KeyboardEvent) => void;
 }
 
 export interface EventImageUploaderProps {

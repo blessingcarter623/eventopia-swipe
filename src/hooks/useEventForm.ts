@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
@@ -31,6 +30,8 @@ export const useEventForm = () => {
     price: "0",
     tags: [],
     mediaFile: null,
+    videoId: undefined,
+    videoUrl: undefined,
   });
 
   // Use our utility hooks
@@ -47,7 +48,20 @@ export const useEventForm = () => {
     setIsLoading(true);
     
     try {
-      const uploadedImageUrl = formData.mediaFile ? await uploadEventImage(formData.mediaFile) : null;
+      // Determine media URL and type based on what's provided
+      let mediaUrl = null;
+      let mediaType = 'image';
+      
+      // If using a selected video
+      if (formData.videoUrl) {
+        mediaUrl = formData.videoUrl;
+        mediaType = 'video';
+      }
+      // Otherwise try to upload a new image/video
+      else if (formData.mediaFile) {
+        mediaUrl = await uploadEventImage(formData.mediaFile);
+        mediaType = formData.mediaFile.type.startsWith('video/') ? 'video' : 'image';
+      }
       
       const { data: eventData, error: eventError } = await supabase
         .from('events')
@@ -62,13 +76,28 @@ export const useEventForm = () => {
           price: formData.price ? parseFloat(formData.price) : 0,
           category: formData.category,
           tags: formData.tags,
-          media_url: uploadedImageUrl,
-          media_type: 'image',
+          media_url: mediaUrl,
+          media_type: mediaType,
           organizer_id: profile?.id,
         })
         .select();
       
       if (eventError) throw eventError;
+      
+      // If an event video was used, update its relationship to the event
+      if (formData.videoId && eventData && eventData[0]) {
+        const { error: videoUpdateError } = await supabase
+          .from('event_videos')
+          .update({
+            event_id: eventData[0].id
+          })
+          .eq('id', formData.videoId);
+          
+        if (videoUpdateError) {
+          console.error("Error linking video to event:", videoUpdateError);
+          // Continue anyway as the main event is created
+        }
+      }
       
       toast({
         title: "Event created",

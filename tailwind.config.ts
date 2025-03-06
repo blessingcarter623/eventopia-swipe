@@ -79,10 +79,40 @@ const config: Config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "sound-wave-1": {
+          "0%, 100%": { height: "3px" },
+          "50%": { height: "10px" }
+        },
+        "sound-wave-2": {
+          "0%, 100%": { height: "5px" },
+          "50%": { height: "15px" }
+        },
+        "sound-wave-3": {
+          "0%, 100%": { height: "3px" },
+          "50%": { height: "18px" }
+        },
+        "sound-wave-4": {
+          "0%, 100%": { height: "7px" },
+          "50%": { height: "12px" }
+        },
+        "sound-wave-5": {
+          "0%, 100%": { height: "4px" },
+          "50%": { height: "9px" }
+        },
+        "pulse-scale": {
+          "0%, 100%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.1)" }
+        }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "sound-wave-1": "sound-wave-1 1.2s ease-in-out infinite",
+        "sound-wave-2": "sound-wave-2 1.1s ease-in-out infinite",
+        "sound-wave-3": "sound-wave-3 1s ease-in-out infinite",
+        "sound-wave-4": "sound-wave-4 1.3s ease-in-out infinite",
+        "sound-wave-5": "sound-wave-5 1.4s ease-in-out infinite",
+        "pulse-scale": "pulse-scale 2s ease-in-out infinite"
       },
     },
   },

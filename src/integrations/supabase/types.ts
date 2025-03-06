@@ -9,6 +9,54 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      event_videos: {
+        Row: {
+          created_at: string
+          description: string | null
+          event_date: string | null
+          event_price: string | null
+          event_time: string | null
+          id: string
+          location: string | null
+          media_url: string | null
+          status: string
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event_date?: string | null
+          event_price?: string | null
+          event_time?: string | null
+          id?: string
+          location?: string | null
+          media_url?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event_date?: string | null
+          event_price?: string | null
+          event_time?: string | null
+          id?: string
+          location?: string | null
+          media_url?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

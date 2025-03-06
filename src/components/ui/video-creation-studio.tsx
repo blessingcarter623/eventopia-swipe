@@ -1,5 +1,4 @@
-
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -11,11 +10,30 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { v4 as uuidv4 } from 'uuid';
 import { 
   Video, Upload, Scissors, Music, Map, 
   Paintbrush, Play, Pause, Volume2, Share,
-  Camera, Trash, Check, Image, Type, PlusCircle
+  Camera, Trash, Check, Image, Type, PlusCircle,
+  Loader2
 } from "lucide-react";
+
+interface EventVideo {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  event_date: string;
+  event_time: string;
+  event_price: string;
+  media_url: string;
+  thumbnail_url: string | null;
+  status: 'draft' | 'published';
+  created_at: string;
+  updated_at: string;
+}
 
 export function VideoCreationStudio() {
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
@@ -31,13 +49,20 @@ export function VideoCreationStudio() {
   const [volume, setVolume] = useState([50]);
   const [trimStart, setTrimStart] = useState([0]);
   const [trimEnd, setTrimEnd] = useState([100]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
+  const [publishStatus, setPublishStatus] = useState<'draft' | 'published'>('draft');
 
+  const { user, profile } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setVideoFile(file);
       const url = URL.createObjectURL(file);
       setVideoSrc(url);
     }
@@ -80,12 +105,122 @@ export function VideoCreationStudio() {
     }
   };
   
-  const handlePublish = () => {
-    toast({
-      title: "Event video published!",
-      description: "Your event video has been created and is now live",
-    });
+  const uploadVideoToStorage = async () => {
+    if (!videoFile || !user) return null;
+    
+    setIsUploading(true);
+    try {
+      const fileExt = videoFile.name.split('.').pop();
+      const filePath = `${user.id}/${uuidv4()}.${fileExt}`;
+      
+      const { data, error } = await supabase.storage
+        .from('event_videos')
+        .upload(filePath, videoFile);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('event_videos')
+        .getPublicUrl(filePath);
+      
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading video:', error);
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading your video",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
   };
+  
+  const saveEventVideo = async (status: 'draft' | 'published' = 'draft') => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to save your event video",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsSaving(true);
+    try {
+      let mediaUrl = videoSrc;
+      
+      // If we have a local file, upload it first
+      if (videoFile) {
+        mediaUrl = await uploadVideoToStorage();
+        if (!mediaUrl) return;
+      }
+      
+      const videoData = {
+        title: title || "Untitled Event",
+        description,
+        location: eventLocation,
+        event_date: eventDate,
+        event_time: "",
+        event_price: eventPrice,
+        media_url: mediaUrl,
+        thumbnail_url: null, // We could generate this in the future
+        status,
+        user_id: user.id,
+      };
+      
+      let result;
+      
+      if (currentVideoId) {
+        // Update existing video
+        result = await supabase
+          .from('event_videos')
+          .update(videoData)
+          .eq('id', currentVideoId);
+      } else {
+        // Insert new video
+        result = await supabase
+          .from('event_videos')
+          .insert(videoData)
+          .select();
+      }
+      
+      if (result.error) {
+        throw result.error;
+      }
+      
+      // If this was a new insert, store the ID
+      if (result.data && !currentVideoId) {
+        setCurrentVideoId(result.data[0].id);
+      }
+      
+      setPublishStatus(status);
+      
+      toast({
+        title: status === 'published' ? "Event published!" : "Draft saved",
+        description: status === 'published' 
+          ? "Your event video has been created and is now live" 
+          : "Your event video draft has been saved",
+      });
+      
+    } catch (error) {
+      console.error('Error saving event video:', error);
+      toast({
+        title: "Save failed",
+        description: "There was an error saving your event video",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  const handlePublish = () => saveEventVideo('published');
+  const handleSaveDraft = () => saveEventVideo('draft');
   
   const triggerFileInput = () => {
     fileInputRef.current?.click();
@@ -218,6 +353,7 @@ export function VideoCreationStudio() {
                 onClick={() => {
                   setVideoSrc(null);
                   setIsPlaying(false);
+                  setVideoFile(null);
                 }}
               >
                 <Trash className="w-5 h-5" />
@@ -527,14 +663,27 @@ export function VideoCreationStudio() {
                 Preview
               </Button>
               <div className="space-x-2">
-                <Button variant="outline" className="border-white/20 text-white">
+                <Button 
+                  variant="outline" 
+                  className="border-white/20 text-white"
+                  onClick={handleSaveDraft}
+                  disabled={isSaving || isUploading}
+                >
+                  {(isSaving || isUploading) && publishStatus === 'draft' ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : null}
                   Save Draft
                 </Button>
                 <Button 
                   className="bg-neon-yellow hover:bg-neon-yellow/90 text-black"
                   onClick={handlePublish}
+                  disabled={isSaving || isUploading}
                 >
-                  <Check className="w-4 h-4 mr-2" />
+                  {(isSaving || isUploading) && publishStatus === 'published' ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Check className="w-4 h-4 mr-2" />
+                  )}
                   Publish Event
                 </Button>
               </div>

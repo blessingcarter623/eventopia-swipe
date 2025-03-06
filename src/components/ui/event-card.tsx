@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Event } from "@/types";
 import { Heart, MessageCircle, Share2, Bookmark, Calendar, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,6 +26,18 @@ export function EventCard({
 }: EventCardProps) {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(event.isSaved || false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Handle video playback based on card visibility
+  useEffect(() => {
+    if (!videoRef.current) return;
+    
+    if (isActive && event.media.type === "video") {
+      videoRef.current.play().catch(err => console.log("Video autoplay prevented:", err));
+    } else if (videoRef.current) {
+      videoRef.current.pause();
+    }
+  }, [isActive, event.media.type]);
 
   const handleLike = () => {
     setLiked(!liked);
@@ -54,13 +66,13 @@ export function EventCard({
           />
         ) : (
           <video 
+            ref={videoRef}
             src={event.media.url} 
             poster={event.media.thumbnail} 
             className="w-full h-full object-cover"
-            autoPlay
-            loop
             muted
             playsInline
+            loop
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/70" />

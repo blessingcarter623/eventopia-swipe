@@ -1,8 +1,8 @@
-
 import React, { useState } from "react";
 import { X, Send } from "lucide-react";
 import { Comment as CommentComponent } from "./comment";
 import { Comment } from "@/types";
+import { cn } from "@/lib/utils";
 
 interface CommentsDrawerProps {
   eventId: string;

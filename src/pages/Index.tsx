@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { EventCard } from "@/components/ui/event-card";
 import { CommentsDrawer } from "@/components/ui/comments-drawer";
@@ -16,13 +15,22 @@ const Index = () => {
   
   const containerRef = useRef<HTMLDivElement>(null);
   const startY = useRef<number | null>(null);
+  const isSwiping = useRef(false);
   
   const handleSwipe = (direction: "up" | "down") => {
+    if (isSwiping.current) return;
+    isSwiping.current = true;
+    
     if (direction === "up" && currentIndex < events.length - 1) {
       setCurrentIndex(prevIndex => prevIndex + 1);
     } else if (direction === "down" && currentIndex > 0) {
       setCurrentIndex(prevIndex => prevIndex - 1);
     }
+    
+    // Reset swiping flag after animation
+    setTimeout(() => {
+      isSwiping.current = false;
+    }, 300);
   };
   
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -30,11 +38,12 @@ const Index = () => {
   };
   
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (startY.current === null) return;
+    if (startY.current === null || isSwiping.current) return;
     
     const currentY = e.touches[0].clientY;
     const diff = startY.current - currentY;
     
+    // Only trigger swipe if movement is significant (more than 50px)
     if (Math.abs(diff) > 50) {
       if (diff > 0) {
         handleSwipe("up");
@@ -49,9 +58,36 @@ const Index = () => {
     startY.current = null;
   };
   
+  // Add wheel event support for desktop
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (isSwiping.current) return;
+      
+      if (e.deltaY > 0) {
+        handleSwipe("up");
+      } else if (e.deltaY < 0) {
+        handleSwipe("down");
+      }
+    };
+    
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener("wheel", handleWheel);
+    }
+    
+    return () => {
+      if (container) {
+        container.removeEventListener("wheel", handleWheel);
+      }
+    };
+  }, [currentIndex, events.length]);
+  
   const handleLike = (eventId: string) => {
     // In a real app, this would call an API
-    console.log(`Liked event ${eventId}`);
+    toast({
+      title: "Liked!",
+      description: "You liked this event",
+    });
   };
   
   const handleComment = (eventId: string) => {
@@ -66,8 +102,10 @@ const Index = () => {
   };
   
   const handleBookmark = (eventId: string) => {
-    // In a real app, this would call an API
-    console.log(`Bookmarked event ${eventId}`);
+    toast({
+      title: "Saved!",
+      description: "Event added to your saved collection",
+    });
   };
   
   const handleAddComment = (eventId: string, content: string) => {
@@ -91,11 +129,20 @@ const Index = () => {
           : event
       )
     );
+    
+    toast({
+      title: "Comment Added",
+      description: "Your comment has been added successfully",
+    });
   };
   
   const handleLikeComment = (commentId: string) => {
     // In a real app, this would call an API
     console.log(`Liked comment ${commentId}`);
+    toast({
+      title: "Liked comment",
+      description: "You liked this comment",
+    });
   };
   
   const handleReplyComment = (commentId: string, content: string) => {
@@ -227,8 +274,64 @@ const Index = () => {
         isOpen={showComments}
         onClose={() => setShowComments(false)}
         onAddComment={handleAddComment}
-        onLikeComment={handleLikeComment}
-        onReplyComment={handleReplyComment}
+        onLikeComment={(commentId) => {
+          console.log(`Liked comment ${commentId}`);
+          toast({
+            title: "Liked comment",
+            description: "You liked this comment",
+          });
+        }}
+        onReplyComment={(commentId, content) => {
+          setComments(prev => 
+            prev.map(comment => {
+              if (comment.id === commentId) {
+                const newReply = {
+                  id: `reply-${Date.now()}`,
+                  userId: "5", // In a real app, this would be the current user's ID
+                  username: "festivalgoer",
+                  avatar: "https://i.pravatar.cc/150?img=5",
+                  content,
+                  timestamp: new Date().toISOString(),
+                  likes: 0,
+                };
+                
+                return {
+                  ...comment,
+                  replies: [...(comment.replies || []), newReply],
+                };
+              } else if (comment.replies) {
+                const foundInReplies = comment.replies.some(reply => reply.id === commentId);
+                if (foundInReplies) {
+                  const newReply = {
+                    id: `reply-${Date.now()}`,
+                    userId: "5", // In a real app, this would be the current user's ID
+                    username: "festivalgoer",
+                    avatar: "https://i.pravatar.cc/150?img=5",
+                    content,
+                    timestamp: new Date().toISOString(),
+                    likes: 0,
+                  };
+                  
+                  return {
+                    ...comment,
+                    replies: [...comment.replies, newReply],
+                  };
+                }
+              }
+              
+              return comment;
+            })
+          );
+          
+          // Update event comment count
+          setEvents(prev => 
+            prev.map(event => 
+              event.id === events[currentIndex].id 
+                ? { ...event, stats: { ...event.stats, comments: event.stats.comments + 1 } } 
+                : event
+            )
+          );
+        }}
       />
       
       {/* Bottom Navigation */}

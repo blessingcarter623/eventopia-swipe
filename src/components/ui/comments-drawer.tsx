@@ -5,6 +5,7 @@ import { Comment as CommentComponent } from "./comment";
 import { cn } from "@/lib/utils";
 import { useComments } from "@/hooks/useComments";
 import { useAuth } from "@/context/AuthContext";
+import { Skeleton } from "./skeleton";
 
 interface CommentsDrawerProps {
   eventId: string;
@@ -51,8 +52,10 @@ export function CommentsDrawer({
         
         <div className="overflow-y-auto flex-1 p-4 scrollbar-none">
           {isLoading ? (
-            <div className="flex justify-center items-center h-40">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-neon-yellow"></div>
+            <div className="space-y-4">
+              <CommentSkeleton />
+              <CommentSkeleton />
+              <CommentSkeleton />
             </div>
           ) : comments.length > 0 ? (
             comments.map((comment) => (
@@ -81,12 +84,36 @@ export function CommentsDrawer({
           />
           <button 
             type="submit"
-            className="bg-neon-yellow text-black rounded-full w-12 h-12 flex items-center justify-center"
+            className={cn(
+              "rounded-full w-12 h-12 flex items-center justify-center",
+              user && newComment.trim() 
+                ? "bg-neon-yellow text-black" 
+                : "bg-white/10 text-gray-400 cursor-not-allowed"
+            )}
             disabled={!newComment.trim() || !user}
           >
             <Send className="w-5 h-5" />
           </button>
         </form>
+      </div>
+    </div>
+  );
+}
+
+// Comment skeleton loader component
+function CommentSkeleton() {
+  return (
+    <div className="flex gap-3 mb-4">
+      <Skeleton className="w-8 h-8 rounded-full bg-white/10" />
+      <div className="flex-1">
+        <div className="glass-card rounded-xl p-3">
+          <div className="flex justify-between">
+            <Skeleton className="w-24 h-4 bg-white/10" />
+            <Skeleton className="w-16 h-3 bg-white/10" />
+          </div>
+          <Skeleton className="w-full h-4 mt-2 bg-white/10" />
+          <Skeleton className="w-3/4 h-4 mt-1 bg-white/10" />
+        </div>
       </div>
     </div>
   );

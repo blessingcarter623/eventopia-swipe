@@ -35,6 +35,10 @@ export interface Event {
     thumbnail?: string;
   };
   location: string;
+  coordinates?: {
+    lat: number | null;
+    lng: number | null;
+  };
   date: string;
   time: string;
   price: number | string;

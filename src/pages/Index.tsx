@@ -10,66 +10,65 @@ import { Event } from "@/types";
 import { useQuery } from "@tanstack/react-query";
 
 const fetchEvents = async (): Promise<Event[]> => {
-  const { data, error } = await supabase
+  // First fetch events
+  const { data: events, error } = await supabase
     .from('events')
-    .select(`
-      id,
-      title,
-      description,
-      media_type,
-      media_url,
-      thumbnail_url,
-      location,
-      date,
-      time,
-      price,
-      category,
-      tags,
-      organizer_id,
-      profiles:organizer_id (
-        id,
-        display_name,
-        avatar_url,
-        is_verified
-      )
-    `)
+    .select('*')
     .order('created_at', { ascending: false });
   
   if (error) {
     console.error("Error fetching events:", error);
     throw error;
   }
+
+  // Then fetch organizer profiles for the events
+  const eventIds = events.map(event => event.organizer_id);
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('*')
+    .in('id', eventIds);
+
+  if (profilesError) {
+    console.error("Error fetching profiles:", profilesError);
+    throw profilesError;
+  }
+
+  // Create a map of profiles for easy lookup
+  const profileMap = new Map(profiles.map(profile => [profile.id, profile]));
   
   // Transform the data to match the Event type
-  return data.map(event => ({
-    id: event.id,
-    title: event.title,
-    description: event.description || '',
-    media: {
-      type: event.media_type as 'image' | 'video',
-      url: event.media_url || '',
-      thumbnail: event.thumbnail_url || '',
-    },
-    location: event.location || '',
-    date: event.date ? new Date(event.date).toISOString() : new Date().toISOString(),
-    time: event.time || '',
-    price: typeof event.price === 'number' ? event.price : 'Free',
-    category: event.category || '',
-    organizer: {
-      id: event.profiles.id,
-      name: event.profiles.display_name || 'Event Organizer',
-      avatar: event.profiles.avatar_url || 'https://i.pravatar.cc/150?u=' + event.profiles.id,
-      isVerified: event.profiles.is_verified || false,
-    },
-    stats: {
-      likes: Math.floor(Math.random() * 1000),
-      comments: Math.floor(Math.random() * 100),
-      shares: Math.floor(Math.random() * 500),
-      views: Math.floor(Math.random() * 10000),
-    },
-    tags: event.tags || [],
-    isSaved: false,
-  }));
+  return events.map(event => {
+    const organizer = profileMap.get(event.organizer_id);
+    return {
+      id: event.id,
+      title: event.title,
+      description: event.description || '',
+      media: {
+        type: event.media_type as 'image' | 'video',
+        url: event.media_url || '',
+        thumbnail: event.thumbnail_url || '',
+      },
+      location: event.location || '',
+      date: event.date ? new Date(event.date).toISOString() : new Date().toISOString(),
+      time: event.time || '',
+      price: typeof event.price === 'number' ? event.price : 'Free',
+      category: event.category || '',
+      organizer: {
+        id: organizer?.id || event.organizer_id,
+        name: organizer?.display_name || 'Event Organizer',
+        avatar: organizer?.avatar_url || `https://i.pravatar.cc/150?u=${event.organizer_id}`,
+        isVerified: organizer?.is_verified || false,
+      },
+      stats: {
+        likes: Math.floor(Math.random() * 1000),
+        comments: Math.floor(Math.random() * 100),
+        shares: Math.floor(Math.random() * 500),
+        views: Math.floor(Math.random() * 10000),
+      },
+      tags: event.tags || [],
+      isSaved: false,
+    };
+  });
 };
 
 const Index = () => {
@@ -79,7 +78,7 @@ const Index = () => {
   const [followedOrganizers, setFollowedOrganizers] = useState<string[]>([]);
   const { toast } = useToast();
   
-  const { data: events = [], isLoading, isError } = useQuery({
+  const { data: events = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['events'],
     queryFn: fetchEvents,
   });
@@ -210,7 +209,6 @@ const Index = () => {
   }, [handleSwipe]);
   
   const handleLike = async (eventId: string) => {
-    // In a real app, this would call an API to like the event
     toast({
       title: "Liked!",
       description: "You liked this event",
@@ -238,13 +236,6 @@ const Index = () => {
   };
   
   const handleShare = (eventId: string) => {
-    // Update the UI to reflect the share count
-    setEvents(events.map(event => 
-      event.id === eventId 
-        ? { ...event, stats: { ...event.stats, shares: event.stats.shares + 1 } } 
-        : event
-    ));
-    
     toast({
       title: "Shared!",
       description: "Event shared with your followers",
@@ -252,13 +243,6 @@ const Index = () => {
   };
   
   const handleBookmark = (eventId: string) => {
-    // Update the isSaved status for this event
-    setEvents(events.map(event => 
-      event.id === eventId 
-        ? { ...event, isSaved: !event.isSaved } 
-        : event
-    ));
-    
     toast({
       title: "Saved!",
       description: "Event added to your saved collection",
@@ -268,7 +252,7 @@ const Index = () => {
   const handleAddComment = (eventId: string, content: string) => {
     const newComment = {
       id: `new-${Date.now()}`,
-      userId: "5", // In a real app, this would be the current user's ID
+      userId: "5",
       username: "festivalgoer",
       avatar: "https://i.pravatar.cc/150?img=5",
       content,
@@ -277,15 +261,6 @@ const Index = () => {
     };
     
     setComments(prev => [newComment, ...prev]);
-    
-    // Update event comment count
-    setEvents(prev => 
-      prev.map(event => 
-        event.id === eventId 
-          ? { ...event, stats: { ...event.stats, comments: event.stats.comments + 1 } } 
-          : event
-      )
-    );
     
     toast({
       title: "Comment Added",
@@ -342,15 +317,6 @@ const Index = () => {
         
         return comment;
       })
-    );
-    
-    // Update event comment count
-    setEvents(prev => 
-      prev.map(event => 
-        event.id === events[currentIndex].id 
-          ? { ...event, stats: { ...event.stats, comments: event.stats.comments + 1 } } 
-          : event
-      )
     );
   };
   

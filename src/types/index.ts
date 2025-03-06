@@ -9,6 +9,9 @@ export interface User {
   following: number;
   posts: number;
   isVerified?: boolean;
+  role: 'user' | 'organizer';
+  savedEvents?: string[];
+  tickets?: Ticket[];
 }
 
 export interface Comment {
@@ -50,4 +53,15 @@ export interface Event {
   };
   tags: string[];
   isSaved?: boolean;
+}
+
+export interface Ticket {
+  id: string;
+  eventId: string;
+  userId: string;
+  purchaseDate: string;
+  status: 'active' | 'used' | 'expired' | 'cancelled';
+  qrCode: string;
+  price: number;
+  currency: string;
 }

@@ -1,7 +1,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { geocodeAddress, getAddressFromLatLng, placeMarkerAndGetAddress } from "./utils";
-import { MapRefs } from "./types";
 
 export const useGoogleMap = (
   apiKey: string,
@@ -191,16 +190,26 @@ export const useGoogleMap = (
 
   // Setup places autocomplete
   const setupAutocomplete = () => {
-    if (!searchInputRef.current || !window.google) return;
+    if (!searchInputRef.current || !window.google || !window.google.maps || !window.google.maps.places) {
+      console.log("Cannot setup autocomplete - missing dependencies");
+      return;
+    }
     
-    autocompleteRef.current = new window.google.maps.places.Autocomplete(
-      searchInputRef.current,
-      { types: ["geocode"] }
-    );
-    
-    if (autocompleteRef.current) {
+    try {
+      // Create the autocomplete object
+      autocompleteRef.current = new window.google.maps.places.Autocomplete(
+        searchInputRef.current,
+        { 
+          types: ["geocode"],
+          fields: ["address_components", "formatted_address", "geometry", "name"]
+        }
+      );
+      
+      // When a place is selected
       autocompleteRef.current.addListener("place_changed", () => {
         const place = autocompleteRef.current?.getPlace();
+        console.log("Place selected:", place);
+        
         if (place && place.geometry && place.geometry.location) {
           const lat = place.geometry.location.lat();
           const lng = place.geometry.location.lng();
@@ -216,8 +225,14 @@ export const useGoogleMap = (
           }
           
           onSelectLocation(address, lat, lng);
+        } else {
+          console.warn("Place selected but no geometry available");
         }
       });
+      
+      console.log("Autocomplete setup complete");
+    } catch (err) {
+      console.error("Error setting up autocomplete:", err);
     }
   };
 

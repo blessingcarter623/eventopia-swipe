@@ -33,7 +33,7 @@ const LocationSection: React.FC<LocationSectionProps> = ({
         <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
       </div>
       
-      <div className="mt-2 h-[200px] rounded-md overflow-hidden">
+      <div className="mt-2 h-[300px] rounded-md overflow-hidden">
         <GoogleMapPicker 
           apiKey="AIzaSyCTFB-7pPLQoFoo6F70AQ8hnYmxdHUyxgA"
           onSelectLocation={(address, lat, lng) => {

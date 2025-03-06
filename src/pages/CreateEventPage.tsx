@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { NavigationBar } from "@/components/ui/navigation-bar";
@@ -62,7 +61,6 @@ const CreateEventPage = () => {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Handle image upload preview
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -75,7 +73,6 @@ const CreateEventPage = () => {
     }
   };
 
-  // Add a tag to the tags array
   const addTag = () => {
     if (tagInput.trim() !== "" && !tags.includes(tagInput.trim())) {
       setTags([...tags, tagInput.trim()]);
@@ -83,12 +80,10 @@ const CreateEventPage = () => {
     }
   };
 
-  // Remove a tag from the tags array
   const removeTag = (tagToRemove: string) => {
     setTags(tags.filter((tag) => tag !== tagToRemove));
   };
 
-  // Handle tag input keydown (add tag on Enter)
   const handleTagKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -96,7 +91,6 @@ const CreateEventPage = () => {
     }
   };
 
-  // Upload event image to Supabase Storage
   const uploadEventImage = async (): Promise<string | null> => {
     if (!mediaFile) return null;
     
@@ -122,7 +116,6 @@ const CreateEventPage = () => {
     }
   };
 
-  // Submit the form data to create an event
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -147,10 +140,8 @@ const CreateEventPage = () => {
     setIsLoading(true);
     
     try {
-      // Upload image if present
       const uploadedImageUrl = mediaFile ? await uploadEventImage() : null;
       
-      // Create event in database
       const { data: eventData, error: eventError } = await supabase
         .from('events')
         .insert({
@@ -177,7 +168,6 @@ const CreateEventPage = () => {
         description: "Your event has been successfully created",
       });
       
-      // Navigate back to dashboard
       navigate("/organizer/dashboard");
       
     } catch (error: any) {
@@ -191,8 +181,7 @@ const CreateEventPage = () => {
       setIsLoading(false);
     }
   };
-  
-  // Check for storage bucket existence and create if needed
+
   useEffect(() => {
     const createStorageBucketIfNeeded = async () => {
       const { data, error } = await supabase.storage.getBucket('event-media');
@@ -215,7 +204,6 @@ const CreateEventPage = () => {
         </div>
         
         <form onSubmit={handleSubmit} className="p-4 space-y-6 max-w-xl mx-auto">
-          {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title" className="text-white">Event Title*</Label>
             <Input
@@ -228,7 +216,6 @@ const CreateEventPage = () => {
             />
           </div>
           
-          {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description" className="text-white">Description*</Label>
             <Textarea
@@ -241,7 +228,6 @@ const CreateEventPage = () => {
             />
           </div>
           
-          {/* Category */}
           <div className="space-y-2">
             <Label htmlFor="category" className="text-white">Category*</Label>
             <Select value={category} onValueChange={setCategory}>
@@ -258,7 +244,6 @@ const CreateEventPage = () => {
             </Select>
           </div>
           
-          {/* Date and Time */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-white">Date*</Label>
@@ -300,7 +285,6 @@ const CreateEventPage = () => {
             </div>
           </div>
           
-          {/* Location - Google Maps Integration */}
           <div className="space-y-2">
             <Label htmlFor="location" className="text-white">Location*</Label>
             <div className="relative">
@@ -327,7 +311,6 @@ const CreateEventPage = () => {
             </div>
           </div>
           
-          {/* Price */}
           <div className="space-y-2">
             <Label htmlFor="price" className="text-white">Price (R)</Label>
             <Input
@@ -342,7 +325,6 @@ const CreateEventPage = () => {
             />
           </div>
           
-          {/* Event Image */}
           <div className="space-y-2">
             <Label htmlFor="image" className="text-white">Event Image</Label>
             <div className="flex items-center space-x-4">
@@ -386,7 +368,6 @@ const CreateEventPage = () => {
             </div>
           </div>
           
-          {/* Tags */}
           <div className="space-y-2">
             <Label htmlFor="tags" className="text-white">Tags</Label>
             <div className="flex">
@@ -432,7 +413,6 @@ const CreateEventPage = () => {
             )}
           </div>
           
-          {/* Submit Button */}
           <div className="pt-4">
             <Button
               type="submit"

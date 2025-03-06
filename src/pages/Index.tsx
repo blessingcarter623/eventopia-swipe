@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { EventCard } from "@/components/ui/event-card";
 import { CommentsDrawer } from "@/components/ui/comments-drawer";
 import { NavigationBar } from "@/components/ui/navigation-bar";
+import { ProgressBar } from "@/components/ui/progress-bar";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,7 +73,9 @@ const Index = () => {
   const [showComments, setShowComments] = useState(false);
   const [followedOrganizers, setFollowedOrganizers] = useState<string[]>([]);
   const [showFollowingToast, setShowFollowingToast] = useState(false);
-  const [activeEventIndex, setActiveEventIndex] = useState(0);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [swipeDistance, setSwipeDistance] = useState(0);
+  const [isSwipeTransitioning, setIsSwipeTransitioning] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   
@@ -119,8 +122,9 @@ const Index = () => {
   }, [currentIndex, events]);
   
   const handleSwipe = useCallback((direction: "up" | "down") => {
-    if (isSwiping.current) return;
+    if (isSwiping.current || isSwipeTransitioning) return;
     isSwiping.current = true;
+    setIsSwipeTransitioning(true);
     
     document.documentElement.style.setProperty('--swipe-direction', direction === "up" ? "-100%" : "100%");
     document.documentElement.classList.add('swiping');
@@ -134,12 +138,10 @@ const Index = () => {
     
     if (direction === "up" && currentIndex < events.length - 1) {
       setCurrentIndex(prevIndex => {
-        setActiveEventIndex(prevIndex + 1);
         return prevIndex + 1;
       });
     } else if (direction === "down" && currentIndex > 0) {
       setCurrentIndex(prevIndex => {
-        setActiveEventIndex(prevIndex - 1);
         return prevIndex - 1;
       });
     }
@@ -147,6 +149,8 @@ const Index = () => {
     setTimeout(() => {
       document.documentElement.classList.remove('swiping');
       isSwiping.current = false;
+      setIsSwipeTransitioning(false);
+      setSwipeDistance(0);
       
       if (events[currentIndex]?.media.type === "video") {
         const newVideo = videoRefs.current[currentIndex];
@@ -155,36 +159,45 @@ const Index = () => {
         }
       }
     }, 400);
-  }, [currentIndex, events]);
+  }, [currentIndex, events, isSwipeTransitioning]);
   
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (isSwipeTransitioning) return;
     startY.current = e.touches[0].clientY;
+    setTouchStartY(e.touches[0].clientY);
   };
   
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (startY.current === null || isSwiping.current) return;
+    if (startY.current === null || isSwiping.current || isSwipeTransitioning) return;
     
     const currentY = e.touches[0].clientY;
     const diff = startY.current - currentY;
     
-    if (Math.abs(diff) > 30) {
+    if ((diff > 0 && currentIndex < events.length - 1) || (diff < 0 && currentIndex > 0)) {
+      setSwipeDistance(diff);
+    }
+    
+    if (Math.abs(diff) > 80) {
       if (diff > 0) {
         handleSwipe("up");
       } else {
         handleSwipe("down");
       }
       startY.current = null;
+      setTouchStartY(null);
     }
   };
   
   const handleTouchEnd = () => {
     startY.current = null;
+    setTouchStartY(null);
+    setSwipeDistance(0);
   };
   
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
-      if (isSwiping.current) return;
+      if (isSwiping.current || isSwipeTransitioning) return;
       
       if (Math.abs(e.deltaY) > 30) {
         if (e.deltaY > 0) {
@@ -323,12 +336,23 @@ const Index = () => {
   
   return (
     <div className="app-height bg-darkbg flex flex-col">
+      <ProgressBar 
+        currentIndex={currentIndex} 
+        total={events.length} 
+        className="absolute top-0 left-0 right-0 z-50" 
+      />
+      
       <div 
         ref={containerRef}
         className="flex-1 overflow-hidden relative snap-y snap-mandatory"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        style={{
+          transform: !isSwipeTransitioning && swipeDistance !== 0 ? 
+            `translateY(${-swipeDistance * 0.2}px)` : 'translateY(0)',
+          transition: !isSwipeTransitioning ? 'transform 0.1s ease' : undefined
+        }}
       >
         <div className="h-full w-full transform transition-transform duration-400">
           {events.map((event, index) => (

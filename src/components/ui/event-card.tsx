@@ -1,11 +1,12 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Event } from "@/types";
-import { Heart, MessageCircle, Share2, Bookmark, Calendar, MapPin, UserPlus, UserCheck, ChevronDown } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, Calendar, MapPin, UserPlus, UserCheck, ChevronDown, Music } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "./button";
 import { Badge } from "./badge";
+import { SoundWave } from "./sound-wave";
 
 interface EventCardProps {
   event: Event;
@@ -35,6 +36,7 @@ export function EventCard({
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(event.isSaved || false);
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const descriptionRef = useRef<HTMLParagraphElement>(null);
   const [isDescriptionOverflowing, setIsDescriptionOverflowing] = useState(false);
@@ -56,10 +58,28 @@ export function EventCard({
     if (isActive && event.media.type === "video") {
       videoElement.muted = true; // Ensure it can autoplay
       videoElement.currentTime = 0; // Start from beginning
-      videoElement.play().catch(err => console.log("Video autoplay prevented:", err));
+      videoElement.play()
+        .then(() => setIsVideoPlaying(true))
+        .catch(err => {
+          console.log("Video autoplay prevented:", err);
+          setIsVideoPlaying(false);
+        });
     } else if (videoElement) {
       videoElement.pause();
+      setIsVideoPlaying(false);
     }
+    
+    // Add play/pause listeners
+    const handlePlay = () => setIsVideoPlaying(true);
+    const handlePause = () => setIsVideoPlaying(false);
+    
+    videoElement.addEventListener('play', handlePlay);
+    videoElement.addEventListener('pause', handlePause);
+    
+    return () => {
+      videoElement.removeEventListener('play', handlePlay);
+      videoElement.removeEventListener('pause', handlePause);
+    };
   }, [isActive, event.media.type]);
 
   const handleLike = () => {
@@ -75,7 +95,7 @@ export function EventCard({
   return (
     <div 
       className={cn(
-        "relative w-full h-full flex flex-col justify-between transition-opacity duration-300",
+        "event-card-container relative w-full h-full flex flex-col justify-between transition-opacity duration-300",
         isActive ? "opacity-100" : "opacity-0 pointer-events-none"
       )}
     >
@@ -102,11 +122,11 @@ export function EventCard({
             preload="auto"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/80" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
       </div>
       
       {/* Top Bar with User Info */}
-      <div className="flex justify-between items-center p-4 z-10">
+      <div className="flex justify-between items-center p-4 z-10 pt-10">
         <div className="flex items-center">
           <div className="relative">
             <img 
@@ -159,7 +179,7 @@ export function EventCard({
           <div className="bg-black/30 w-12 h-12 rounded-full flex items-center justify-center">
             <Heart 
               className={cn(
-                "w-7 h-7 transition-all duration-300 transform hover:scale-110", 
+                "heart-icon w-7 h-7 transition-all duration-300 transform hover:scale-110", 
                 liked ? "fill-neon-red text-neon-red" : "text-white"
               )} 
             />
@@ -222,7 +242,7 @@ export function EventCard({
         
         {isDescriptionOverflowing && (
           <button 
-            className="text-gray-300 text-xs mb-3"
+            className="text-neon-yellow text-xs mb-3"
             onClick={() => setShowFullDescription(!showFullDescription)}
           >
             {showFullDescription ? "Show less" : "Read more"}
@@ -265,8 +285,11 @@ export function EventCard({
         
         {/* Music Playing Indicator (TikTok-style) */}
         <div className="flex items-center mt-3 text-white text-xs">
-          <div className="w-3 h-3 rounded-full bg-neon-yellow animate-pulse mr-2"></div>
-          <div className="overflow-hidden max-w-[60%]">
+          <div className="flex items-center mr-2">
+            <Music className="w-3 h-3 text-neon-yellow mr-1" />
+            <SoundWave isPlaying={isVideoPlaying || isActive} className="mr-1" />
+          </div>
+          <div className="overflow-hidden max-w-[80%]">
             <div className="animate-marquee whitespace-nowrap">
               {event.category} • {event.organizer.name} • {event.title} • {event.tags.join(' • ')}
             </div>

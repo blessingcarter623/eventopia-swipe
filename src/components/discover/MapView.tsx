@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Event } from "@/types";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarIcon, Clock, MapPinIcon, UserCircle } from "lucide-react";
+import { Loader } from "lucide-react";
 
 interface MapViewProps {
   events: Event[];
@@ -15,11 +16,22 @@ const MapView: React.FC<MapViewProps> = ({ events, isLoading }) => {
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapInitialized, setMapInitialized] = useState(false);
 
   // Initialize map
   useEffect(() => {
-    if (!mapRef.current || isLoading || !window.google) return;
+    if (!mapRef.current || isLoading || !window.google || !window.google.maps) {
+      console.log("Map dependencies not ready:", { 
+        mapRefExists: !!mapRef.current, 
+        isLoading, 
+        googleExists: !!window.google,
+        mapsExists: window.google && !!window.google.maps 
+      });
+      return;
+    }
 
+    console.log("Initializing map...");
+    
     // Get user's location if possible
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -27,6 +39,7 @@ const MapView: React.FC<MapViewProps> = ({ events, isLoading }) => {
           lat: position.coords.latitude,
           lng: position.coords.longitude
         };
+        console.log("Got user position:", userPos);
         setUserLocation(userPos);
         
         if (mapInstanceRef.current) {
@@ -47,30 +60,43 @@ const MapView: React.FC<MapViewProps> = ({ events, isLoading }) => {
     const defaultPos = { lat: -30.5595, lng: 22.9375 };
     const center = userLocation || defaultPos;
 
-    // Create the map
-    mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
-      center,
-      zoom: 10,
-      styles: getMapStyles(),
-      mapTypeControl: false,
-      fullscreenControl: false,
-      streetViewControl: false
-    });
+    try {
+      // Create the map
+      console.log("Creating map with center:", center);
+      mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
+        center,
+        zoom: 10,
+        styles: getMapStyles(),
+        mapTypeControl: false,
+        fullscreenControl: false,
+        streetViewControl: false
+      });
 
-    // Add user location marker if available
-    if (userLocation) {
-      new window.google.maps.Marker({
-        position: userLocation,
-        map: mapInstanceRef.current,
-        icon: {
-          path: window.google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: "#4285F4",
-          fillOpacity: 1,
-          strokeColor: "#FFFFFF",
-          strokeWeight: 2,
-        },
-        title: "Your location"
+      setMapInitialized(true);
+      console.log("Map initialized successfully");
+
+      // Add user location marker if available
+      if (userLocation) {
+        new window.google.maps.Marker({
+          position: userLocation,
+          map: mapInstanceRef.current,
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: "#4285F4",
+            fillOpacity: 1,
+            strokeColor: "#FFFFFF",
+            strokeWeight: 2,
+          },
+          title: "Your location"
+        });
+      }
+    } catch (err) {
+      console.error("Error creating map:", err);
+      toast({
+        title: "Map Error",
+        description: "Unable to initialize map. Please try again later.",
+        variant: "destructive",
       });
     }
 
@@ -78,11 +104,20 @@ const MapView: React.FC<MapViewProps> = ({ events, isLoading }) => {
       // Clean up markers when component unmounts
       clearMarkers();
     };
-  }, [isLoading, userLocation]);
+  }, [isLoading, userLocation, window.google]);
 
   // Add event markers when events data changes
   useEffect(() => {
-    if (!mapInstanceRef.current || !events.length) return;
+    if (!mapInstanceRef.current || !events.length || !mapInitialized) {
+      console.log("Cannot add markers:", { 
+        mapExists: !!mapInstanceRef.current, 
+        eventsCount: events.length,
+        mapInitialized
+      });
+      return;
+    }
+    
+    console.log("Adding markers for events:", events.length);
     
     // Clear existing markers
     clearMarkers();
@@ -92,52 +127,59 @@ const MapView: React.FC<MapViewProps> = ({ events, isLoading }) => {
     
     // Add markers for each event
     events.forEach(event => {
-      if (!event.coordinates?.lat || !event.coordinates?.lng) return;
+      if (!event.coordinates?.lat || !event.coordinates?.lng) {
+        console.log("Event missing coordinates:", event.id);
+        return;
+      }
       
       // Create marker
-      const marker = new window.google.maps.Marker({
-        position: { 
-          lat: event.coordinates.lat, 
-          lng: event.coordinates.lng 
-        },
-        map: mapInstanceRef.current,
-        title: event.title,
-        animation: window.google.maps.Animation.DROP,
-        icon: {
-          url: `http://maps.google.com/mapfiles/ms/icons/${getCategoryColor(event.category)}-dot.png`
-        }
-      });
-      
-      // Create info window content
-      const contentString = `
-        <div class="p-3 max-w-xs">
-          <h3 class="font-bold text-lg">${event.title}</h3>
-          <div class="flex items-center mt-2">
-            <img src="${event.organizer.avatar}" class="w-6 h-6 rounded-full mr-2" />
-            <span>${event.organizer.name}</span>
-            ${event.organizer.isVerified ? '<span class="ml-1 text-xs">✓</span>' : ''}
+      try {
+        const marker = new window.google.maps.Marker({
+          position: { 
+            lat: event.coordinates.lat, 
+            lng: event.coordinates.lng 
+          },
+          map: mapInstanceRef.current,
+          title: event.title,
+          animation: window.google.maps.Animation.DROP,
+          icon: {
+            url: `http://maps.google.com/mapfiles/ms/icons/${getCategoryColor(event.category)}-dot.png`
+          }
+        });
+        
+        // Create info window content
+        const contentString = `
+          <div class="p-3 max-w-xs">
+            <h3 class="font-bold text-lg">${event.title}</h3>
+            <div class="flex items-center mt-2">
+              <img src="${event.organizer.avatar}" class="w-6 h-6 rounded-full mr-2" />
+              <span>${event.organizer.name}</span>
+              ${event.organizer.isVerified ? '<span class="ml-1 text-xs">✓</span>' : ''}
+            </div>
+            <div class="mt-2 grid grid-cols-2 gap-1 text-sm">
+              <div><span class="font-semibold">Date:</span> ${new Date(event.date).toLocaleDateString()}</div>
+              <div><span class="font-semibold">Time:</span> ${event.time}</div>
+            </div>
+            <a href="/event/${event.id}" class="block text-center bg-neon-yellow text-black font-medium py-2 px-4 rounded-lg mt-3 hover:bg-neon-yellow/90">
+              View Details
+            </a>
           </div>
-          <div class="mt-2 grid grid-cols-2 gap-1 text-sm">
-            <div><span class="font-semibold">Date:</span> ${new Date(event.date).toLocaleDateString()}</div>
-            <div><span class="font-semibold">Time:</span> ${event.time}</div>
-          </div>
-          <a href="/event/${event.id}" class="block text-center bg-neon-yellow text-black font-medium py-2 px-4 rounded-lg mt-3 hover:bg-neon-yellow/90">
-            View Details
-          </a>
-        </div>
-      `;
-      
-      // Add click listener to the marker
-      marker.addListener("click", () => {
-        infoWindow.setContent(contentString);
-        infoWindow.open(mapInstanceRef.current, marker);
-      });
-      
-      // Save marker reference for cleanup
-      markersRef.current.push(marker);
+        `;
+        
+        // Add click listener to the marker
+        marker.addListener("click", () => {
+          infoWindow.setContent(contentString);
+          infoWindow.open(mapInstanceRef.current, marker);
+        });
+        
+        // Save marker reference for cleanup
+        markersRef.current.push(marker);
+      } catch (err) {
+        console.error("Error creating marker for event:", event.id, err);
+      }
     });
     
-  }, [events]);
+  }, [events, mapInitialized]);
 
   // Helper function to clear markers
   const clearMarkers = () => {
@@ -163,8 +205,9 @@ const MapView: React.FC<MapViewProps> = ({ events, isLoading }) => {
 
   if (isLoading) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-neon-yellow animate-pulse">Loading map...</div>
+      <div className="h-[80vh] flex items-center justify-center bg-darkbg-lighter rounded-lg">
+        <Loader className="w-6 h-6 text-neon-yellow animate-spin mr-2" />
+        <div className="text-neon-yellow">Loading map...</div>
       </div>
     );
   }

@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { NavigationBar } from "@/components/ui/navigation-bar";
-import { mockUsers, mockEvents } from "@/data/mockData";
+import { mockUsers, mockEvents } from "@/data/index";
 import { ArrowLeft, Settings, Share2 } from "lucide-react";
 import { Link } from "react-router-dom";
 

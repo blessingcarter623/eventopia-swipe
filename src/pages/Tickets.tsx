@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { NavigationBar } from "@/components/ui/navigation-bar";
-import { mockEvents } from "@/data/mockData";
+import { mockEvents } from "@/data/index";
 import { Ticket, Calendar, MapPin, ArrowRight, QrCode } from "lucide-react";
 import { Link } from "react-router-dom";
 

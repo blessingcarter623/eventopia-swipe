@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { NavigationBar } from "@/components/ui/navigation-bar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockEvents, mockUsers } from "@/data/mockData";
+import { mockEvents, mockUsers } from "@/data/index";
 import { Ticket, CalendarDays, Heart, Clock, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";

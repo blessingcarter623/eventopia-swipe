@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { EventCard } from "@/components/ui/event-card";
 import { CommentsDrawer } from "@/components/ui/comments-drawer";
 import { NavigationBar } from "@/components/ui/navigation-bar";
-import { mockEvents, mockComments } from "@/data/mockData";
+import { mockEvents, mockComments } from "@/data/index";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronUp, ChevronDown } from "lucide-react";
 

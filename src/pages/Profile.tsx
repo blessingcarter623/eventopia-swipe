@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { NavigationBar } from "@/components/ui/navigation-bar";
 import { mockEvents } from "@/data/index";
-import { ArrowLeft, Settings, Share2, LogOut } from "lucide-react";
+import { ArrowLeft, Settings, Share2, LogOut, LayoutDashboard } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -87,6 +87,17 @@ const Profile = () => {
                   <Share2 className="w-5 h-5" />
                 </button>
               </div>
+              
+              {/* Show Dashboard Link for Organizers */}
+              {profile.role === 'organizer' && (
+                <Link 
+                  to="/organizer/dashboard" 
+                  className="flex items-center justify-center gap-2 mt-3 bg-gradient-to-r from-neon-yellow to-amber-400 text-black font-medium px-5 py-2 rounded-full text-sm hover:brightness-110 transition-all w-full"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  Organizer Dashboard
+                </Link>
+              )}
             </div>
           </div>
           
@@ -160,20 +171,14 @@ const Profile = () => {
             )}
             
             {activeTab === "images" && (
-              <div className="grid grid-cols-3 gap-1">
-                {Array.from({ length: 9 }).map((_, i) => (
-                  <div key={i} className="aspect-square rounded-md overflow-hidden bg-darkbg-lighter animate-pulse">
-                  </div>
-                ))}
+              <div className="text-center py-10 text-gray-400">
+                <p>No images to display yet.</p>
               </div>
             )}
             
             {activeTab === "reels" && (
-              <div className="grid grid-cols-3 gap-1">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="aspect-[9/16] rounded-md overflow-hidden bg-darkbg-lighter animate-pulse">
-                  </div>
-                ))}
+              <div className="text-center py-10 text-gray-400">
+                <p>No reels to display yet.</p>
               </div>
             )}
           </div>

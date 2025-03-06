@@ -3,6 +3,8 @@ import React from "react";
 import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { User } from "@/types";
+import { Link } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
 interface OrganizerProfileProps {
   organizer: User;
@@ -10,6 +12,11 @@ interface OrganizerProfileProps {
 }
 
 const OrganizerProfile = ({ organizer, eventsCount }: OrganizerProfileProps) => {
+  const { profile } = useAuth();
+  
+  // Check if the current user is this organizer
+  const isCurrentUser = profile?.id === organizer.id;
+  
   return (
     <div className="bg-gradient-to-b from-darkbg-lighter to-darkbg p-4">
       <div className="flex items-center gap-4">
@@ -41,10 +48,18 @@ const OrganizerProfile = ({ organizer, eventsCount }: OrganizerProfileProps) => 
         </div>
       </div>
       
-      <Button className="w-full mt-4 bg-neon-yellow hover:bg-neon-yellow/90 text-black">
-        <PlusCircle className="w-4 h-4 mr-2" />
-        Create New Event
-      </Button>
+      {isCurrentUser ? (
+        <Link to="/create-event">
+          <Button className="w-full mt-4 bg-neon-yellow hover:bg-neon-yellow/90 text-black">
+            <PlusCircle className="w-4 h-4 mr-2" />
+            Create New Event
+          </Button>
+        </Link>
+      ) : (
+        <Button className="w-full mt-4 bg-neon-yellow hover:bg-neon-yellow/90 text-black">
+          Follow
+        </Button>
+      )}
     </div>
   );
 };

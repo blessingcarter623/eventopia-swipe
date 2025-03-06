@@ -1,4 +1,6 @@
 
+import { ExtendedPlaceResult, ExtendedMarker } from "./types";
+
 /**
  * Sets up Google Places Autocomplete on an input element
  */
@@ -26,7 +28,7 @@ export const setupAutocomplete = (
     
     // When a place is selected
     autocompleteRef.current.addListener("place_changed", () => {
-      const place = autocompleteRef.current?.getPlace();
+      const place = autocompleteRef.current?.getPlace() as ExtendedPlaceResult;
       console.log("Place selected:", place);
       
       if (place && place.geometry && place.geometry.location) {
@@ -40,8 +42,8 @@ export const setupAutocomplete = (
         }
         
         if (markerRef.current) {
+          (markerRef.current as ExtendedMarker).setVisible(true);
           markerRef.current.setPosition({ lat, lng });
-          markerRef.current.setVisible(true);
         }
         
         onSelectLocation(address, lat, lng);

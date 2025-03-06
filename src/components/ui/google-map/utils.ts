@@ -1,4 +1,6 @@
 
+import { ExtendedMarker } from "./types";
+
 /**
  * Places a marker on the map and retrieves the address for that location
  */
@@ -9,7 +11,7 @@ export const placeMarkerAndGetAddress = (
 ) => {
   if (markerRef.current) {
     markerRef.current.setPosition(latLng);
-    markerRef.current.setVisible(true);
+    (markerRef.current as ExtendedMarker).setVisible(true);
     getAddressFromLatLng(latLng.lat(), latLng.lng());
   }
 };
@@ -67,7 +69,7 @@ export const geocodeAddress = (
       
       if (markerRef.current) {
         markerRef.current.setPosition(location);
-        markerRef.current.setVisible(true);
+        (markerRef.current as ExtendedMarker).setVisible(true);
       }
       
       onSelectLocation(results[0].formatted_address, location.lat(), location.lng());

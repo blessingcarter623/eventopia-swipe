@@ -1,5 +1,6 @@
 
 import { geocodeAddress } from "./utils";
+import { ExtendedMarker } from "./types";
 
 /**
  * Initializes Google Maps with custom styling
@@ -40,7 +41,7 @@ export const initializeMap = (
     mapInstanceRef.current.addListener("click", (e: any) => {
       if (markerRef.current) {
         markerRef.current.setPosition(e.latLng);
-        markerRef.current.setVisible(true);
+        (markerRef.current as ExtendedMarker).setVisible(true);
         handleAddressFromLatLng(e.latLng.lat(), e.latLng.lng());
       }
     });

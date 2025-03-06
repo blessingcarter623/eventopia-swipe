@@ -24,14 +24,28 @@ export const useComments = (eventId: string) => {
             content, 
             timestamp, 
             likes, 
-            user_id,
-            profiles:user_id (username, avatar_url)
+            user_id
           `)
           .eq('event_id', eventId)
           .is('parent_id', null)
           .order('timestamp', { ascending: false });
 
         if (mainError) throw mainError;
+
+        // Fetch profiles for main comments
+        const mainUserIds = mainComments.map(comment => comment.user_id);
+        const { data: mainProfiles, error: mainProfilesError } = await supabase
+          .from('profiles')
+          .select('id, username, avatar_url')
+          .in('id', mainUserIds);
+
+        if (mainProfilesError) throw mainProfilesError;
+
+        // Create a map of user_id to profile data
+        const profileMap = new Map();
+        mainProfiles.forEach(profile => {
+          profileMap.set(profile.id, profile);
+        });
 
         // Fetch replies (comments with parent_id)
         const { data: replies, error: repliesError } = await supabase
@@ -42,8 +56,7 @@ export const useComments = (eventId: string) => {
             timestamp, 
             likes, 
             user_id,
-            parent_id,
-            profiles:user_id (username, avatar_url)
+            parent_id
           `)
           .eq('event_id', eventId)
           .not('parent_id', 'is', null)
@@ -51,31 +64,53 @@ export const useComments = (eventId: string) => {
 
         if (repliesError) throw repliesError;
 
+        // Fetch profiles for replies
+        const replyUserIds = replies.map(reply => reply.user_id);
+        const { data: replyProfiles, error: replyProfilesError } = await supabase
+          .from('profiles')
+          .select('id, username, avatar_url')
+          .in('id', replyUserIds);
+
+        if (replyProfilesError) throw replyProfilesError;
+
+        // Add reply profiles to the map
+        replyProfiles.forEach(profile => {
+          if (!profileMap.has(profile.id)) {
+            profileMap.set(profile.id, profile);
+          }
+        });
+
         // Format main comments
-        const formattedComments: Comment[] = mainComments.map((comment) => ({
-          id: comment.id,
-          userId: comment.user_id,
-          username: comment.profiles?.username || 'user',
-          avatar: comment.profiles?.avatar_url || `https://i.pravatar.cc/150?u=${comment.user_id}`,
-          content: comment.content,
-          timestamp: comment.timestamp,
-          likes: comment.likes,
-          replies: []
-        }));
+        const formattedComments: Comment[] = mainComments.map((comment) => {
+          const profile = profileMap.get(comment.user_id);
+          return {
+            id: comment.id,
+            userId: comment.user_id,
+            username: profile?.username || 'user',
+            avatar: profile?.avatar_url || `https://i.pravatar.cc/150?u=${comment.user_id}`,
+            content: comment.content,
+            timestamp: comment.timestamp,
+            likes: comment.likes,
+            replies: []
+          };
+        });
 
         // Add replies to their parent comments
         const commentsWithReplies = formattedComments.map(comment => {
           const commentReplies = replies
             .filter(reply => reply.parent_id === comment.id)
-            .map(reply => ({
-              id: reply.id,
-              userId: reply.user_id,
-              username: reply.profiles?.username || 'user',
-              avatar: reply.profiles?.avatar_url || `https://i.pravatar.cc/150?u=${reply.user_id}`,
-              content: reply.content,
-              timestamp: reply.timestamp,
-              likes: reply.likes
-            }));
+            .map(reply => {
+              const profile = profileMap.get(reply.user_id);
+              return {
+                id: reply.id,
+                userId: reply.user_id,
+                username: profile?.username || 'user',
+                avatar: profile?.avatar_url || `https://i.pravatar.cc/150?u=${reply.user_id}`,
+                content: reply.content,
+                timestamp: reply.timestamp,
+                likes: reply.likes
+              };
+            });
           return { ...comment, replies: commentReplies };
         });
 
@@ -115,23 +150,25 @@ export const useComments = (eventId: string) => {
           user_id: user.id,
           content
         })
-        .select(`
-          id, 
-          content, 
-          timestamp, 
-          likes, 
-          user_id,
-          profiles:user_id (username, avatar_url)
-        `)
+        .select('id, content, timestamp, likes, user_id')
         .single();
 
       if (error) throw error;
 
+      // Fetch the user profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
       const newComment: Comment = {
         id: data.id,
         userId: data.user_id,
-        username: data.profiles?.username || user.email?.split('@')[0] || 'user',
-        avatar: data.profiles?.avatar_url || `https://i.pravatar.cc/150?u=${user.id}`,
+        username: profileData?.username || user.email?.split('@')[0] || 'user',
+        avatar: profileData?.avatar_url || `https://i.pravatar.cc/150?u=${user.id}`,
         content: data.content,
         timestamp: data.timestamp,
         likes: data.likes || 0,
@@ -231,24 +268,25 @@ export const useComments = (eventId: string) => {
           content,
           parent_id: commentId
         })
-        .select(`
-          id, 
-          content, 
-          timestamp, 
-          likes, 
-          user_id,
-          parent_id,
-          profiles:user_id (username, avatar_url)
-        `)
+        .select('id, content, timestamp, likes, user_id, parent_id')
         .single();
 
       if (error) throw error;
 
+      // Fetch the user profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
       const newReply: Comment = {
         id: data.id,
         userId: data.user_id,
-        username: data.profiles?.username || user.email?.split('@')[0] || 'user',
-        avatar: data.profiles?.avatar_url || `https://i.pravatar.cc/150?u=${user.id}`,
+        username: profileData?.username || user.email?.split('@')[0] || 'user',
+        avatar: profileData?.avatar_url || `https://i.pravatar.cc/150?u=${user.id}`,
         content: data.content,
         timestamp: data.timestamp,
         likes: data.likes || 0,

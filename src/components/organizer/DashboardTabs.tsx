@@ -1,10 +1,11 @@
 
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Users, BarChart3, Video } from "lucide-react";
+import { Calendar, Users, BarChart3, Video, Ticket } from "lucide-react";
 import EventsTab from "./EventsTab";
 import AnalyticsTab from "./AnalyticsTab";
 import FollowersTab from "./FollowersTab";
+import TicketsTab from "./TicketsTab";
 import { VideoCreationStudio } from "@/components/ui/video-creation-studio";
 import { Event, User } from "@/types";
 
@@ -25,6 +26,8 @@ interface DashboardTabsProps {
   organizerEvents: Event[];
   followers: User[];
   analyticsData: AnalyticsData;
+  isLoading: boolean;
+  refreshEvents: () => void;
 }
 
 const DashboardTabs = ({
@@ -32,17 +35,26 @@ const DashboardTabs = ({
   setActiveTab,
   organizerEvents,
   followers,
-  analyticsData
+  analyticsData,
+  isLoading,
+  refreshEvents
 }: DashboardTabsProps) => {
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid grid-cols-4 bg-darkbg-lighter border-b border-white/10">
+      <TabsList className="grid grid-cols-5 bg-darkbg-lighter border-b border-white/10">
         <TabsTrigger 
           value="events" 
           className="data-[state=active]:text-neon-yellow data-[state=active]:border-b-2 data-[state=active]:border-neon-yellow rounded-none bg-transparent py-3"
         >
           <Calendar className="w-4 h-4 mr-2" />
           Events
+        </TabsTrigger>
+        <TabsTrigger 
+          value="tickets" 
+          className="data-[state=active]:text-neon-yellow data-[state=active]:border-b-2 data-[state=active]:border-neon-yellow rounded-none bg-transparent py-3"
+        >
+          <Ticket className="w-4 h-4 mr-2" />
+          Tickets
         </TabsTrigger>
         <TabsTrigger 
           value="video" 
@@ -70,8 +82,16 @@ const DashboardTabs = ({
       <TabsContent value="events">
         <EventsTab 
           events={organizerEvents}
-          averageTicketsSold={organizerEvents.length > 0 ? Math.floor(analyticsData.totalTicketsSold / organizerEvents.length) : 0}
+          isLoading={isLoading}
+          refreshEvents={refreshEvents}
+          averageTicketsSold={organizerEvents.length > 0 && analyticsData.totalTicketsSold > 0 
+            ? Math.floor(analyticsData.totalTicketsSold / organizerEvents.length) 
+            : 0}
         />
+      </TabsContent>
+      
+      <TabsContent value="tickets">
+        <TicketsTab />
       </TabsContent>
       
       <TabsContent value="video" className="p-0">
@@ -85,6 +105,7 @@ const DashboardTabs = ({
           averageAttendance={analyticsData.averageAttendance}
           eventsCount={organizerEvents.length}
           popularEvents={analyticsData.popularEvents}
+          isLoading={isLoading}
         />
       </TabsContent>
       

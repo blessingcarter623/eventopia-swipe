@@ -1,10 +1,12 @@
 
-import React from "react";
-import { PlusCircle } from "lucide-react";
+import React, { useState } from "react";
+import { PlusCircle, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { User } from "@/types";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface OrganizerProfileProps {
   organizer: User;
@@ -13,9 +15,43 @@ interface OrganizerProfileProps {
 
 const OrganizerProfile = ({ organizer, eventsCount }: OrganizerProfileProps) => {
   const { profile } = useAuth();
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followersCount, setFollowersCount] = useState(organizer.followers);
   
   // Check if the current user is this organizer
   const isCurrentUser = profile?.id === organizer.id;
+  
+  const handleFollow = async () => {
+    if (!profile) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to follow this organizer",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Toggle following state
+    setIsFollowing(!isFollowing);
+    
+    // Update followers count
+    if (!isFollowing) {
+      setFollowersCount(followersCount + 1);
+      toast({
+        title: "Success!",
+        description: `You are now following ${organizer.displayName}`,
+      });
+    } else {
+      setFollowersCount(followersCount - 1);
+      toast({
+        title: "Unfollowed",
+        description: `You are no longer following ${organizer.displayName}`,
+      });
+    }
+    
+    // In a real implementation, you would update the database
+    // This would be implemented with a followers table in the database
+  };
   
   return (
     <div className="bg-gradient-to-b from-darkbg-lighter to-darkbg p-4">
@@ -39,7 +75,7 @@ const OrganizerProfile = ({ organizer, eventsCount }: OrganizerProfileProps) => 
           <p className="text-gray-400">@{organizer.username}</p>
           <div className="flex gap-3 mt-1">
             <span className="text-sm text-gray-400">
-              <span className="text-white font-bold">{organizer.followers}</span> followers
+              <span className="text-white font-bold">{followersCount}</span> followers
             </span>
             <span className="text-sm text-gray-400">
               <span className="text-white font-bold">{eventsCount}</span> events
@@ -49,15 +85,26 @@ const OrganizerProfile = ({ organizer, eventsCount }: OrganizerProfileProps) => 
       </div>
       
       {isCurrentUser ? (
-        <Link to="/create-event">
-          <Button className="w-full mt-4 bg-neon-yellow hover:bg-neon-yellow/90 text-black">
-            <PlusCircle className="w-4 h-4 mr-2" />
-            Create New Event
-          </Button>
-        </Link>
+        <div className="grid grid-cols-2 gap-2 mt-4">
+          <Link to="/create-event" className="block">
+            <Button className="w-full bg-neon-yellow hover:bg-neon-yellow/90 text-black">
+              <PlusCircle className="w-4 h-4 mr-2" />
+              New Event
+            </Button>
+          </Link>
+          <Link to="/organizer/analytics" className="block">
+            <Button variant="outline" className="w-full border-neon-yellow text-neon-yellow hover:bg-neon-yellow hover:text-black">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Analytics
+            </Button>
+          </Link>
+        </div>
       ) : (
-        <Button className="w-full mt-4 bg-neon-yellow hover:bg-neon-yellow/90 text-black">
-          Follow
+        <Button 
+          onClick={handleFollow}
+          className={`w-full mt-4 ${isFollowing ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-neon-yellow hover:bg-neon-yellow/90 text-black'}`}
+        >
+          {isFollowing ? 'Following' : 'Follow'}
         </Button>
       )}
     </div>

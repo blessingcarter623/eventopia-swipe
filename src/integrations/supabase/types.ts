@@ -57,6 +57,66 @@ export type Database = {
         }
         Relationships: []
       }
+      events: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          date: string | null
+          description: string | null
+          id: string
+          location: string | null
+          location_lat: number | null
+          location_lng: number | null
+          media_type: string | null
+          media_url: string | null
+          organizer_id: string
+          price: number | null
+          tags: string[] | null
+          thumbnail_url: string | null
+          time: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          location?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          media_type?: string | null
+          media_url?: string | null
+          organizer_id: string
+          price?: number | null
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          time?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          location?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          media_type?: string | null
+          media_url?: string | null
+          organizer_id?: string
+          price?: number | null
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          time?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -101,6 +161,122 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      ticket_types: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          end_date: string | null
+          event_id: string
+          id: string
+          is_active: boolean | null
+          max_per_purchase: number | null
+          name: string
+          price: number
+          quantity: number
+          sold: number | null
+          start_date: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          event_id: string
+          id?: string
+          is_active?: boolean | null
+          max_per_purchase?: number | null
+          name: string
+          price: number
+          quantity: number
+          sold?: number | null
+          start_date?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          event_id?: string
+          id?: string
+          is_active?: boolean | null
+          max_per_purchase?: number | null
+          name?: string
+          price?: number
+          quantity?: number
+          sold?: number | null
+          start_date?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tickets: {
+        Row: {
+          checked_in: boolean | null
+          checked_in_at: string | null
+          created_at: string | null
+          event_id: string
+          id: string
+          price: number
+          purchase_date: string | null
+          qr_code: string | null
+          status: string | null
+          ticket_type_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          checked_in?: boolean | null
+          checked_in_at?: string | null
+          created_at?: string | null
+          event_id: string
+          id?: string
+          price: number
+          purchase_date?: string | null
+          qr_code?: string | null
+          status?: string | null
+          ticket_type_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          checked_in?: boolean | null
+          checked_in_at?: string | null
+          created_at?: string | null
+          event_id?: string
+          id?: string
+          price?: number
+          purchase_date?: string | null
+          qr_code?: string | null
+          status?: string | null
+          ticket_type_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_ticket_type_id_fkey"
+            columns: ["ticket_type_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

@@ -1,6 +1,7 @@
 
 import React from "react";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AnalyticsEvent {
   name: string;
@@ -14,6 +15,7 @@ interface AnalyticsTabProps {
   averageAttendance: number;
   eventsCount: number;
   popularEvents: AnalyticsEvent[];
+  isLoading: boolean;
 }
 
 const AnalyticsTab = ({ 
@@ -21,8 +23,39 @@ const AnalyticsTab = ({
   totalRevenue, 
   averageAttendance, 
   eventsCount, 
-  popularEvents 
+  popularEvents,
+  isLoading
 }: AnalyticsTabProps) => {
+  if (isLoading) {
+    return (
+      <div className="p-4">
+        <h3 className="text-lg font-semibold text-white mb-4">Event Analytics</h3>
+        
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-darkbg-lighter p-4 rounded-xl">
+              <Skeleton className="h-4 w-24 mb-2" />
+              <Skeleton className="h-8 w-16" />
+            </div>
+          ))}
+        </div>
+        
+        <Skeleton className="h-6 w-32 mb-3" />
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-darkbg-lighter p-3 rounded-xl">
+              <div className="flex justify-between mb-1">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-5 w-16" />
+              </div>
+              <Skeleton className="h-2 w-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="p-4">
       <h3 className="text-lg font-semibold text-white mb-4">Event Analytics</h3>
@@ -47,17 +80,23 @@ const AnalyticsTab = ({
       </div>
       
       <h4 className="text-md font-semibold text-white mb-3">Popular Events</h4>
-      <div className="space-y-4">
-        {popularEvents.map((event, index) => (
-          <div key={index} className="bg-darkbg-lighter p-3 rounded-xl">
-            <div className="flex justify-between mb-1">
-              <p className="text-white">{event.name}</p>
-              <p className="text-neon-yellow font-semibold">{event.sales} sold</p>
+      {popularEvents.length > 0 ? (
+        <div className="space-y-4">
+          {popularEvents.map((event, index) => (
+            <div key={index} className="bg-darkbg-lighter p-3 rounded-xl">
+              <div className="flex justify-between mb-1">
+                <p className="text-white">{event.name}</p>
+                <p className="text-neon-yellow font-semibold">{event.sales} sold</p>
+              </div>
+              <Progress value={event.percentage} className="h-2" indicatorClassName="bg-neon-yellow" />
             </div>
-            <Progress value={event.percentage} className="h-2" indicatorClassName="bg-neon-yellow" />
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-darkbg-lighter p-4 rounded-xl text-center text-gray-400">
+          No event data available yet. Start selling tickets to see analytics!
+        </div>
+      )}
     </div>
   );
 };

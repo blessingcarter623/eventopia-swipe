@@ -41,3 +41,11 @@ export interface EventFormProps {
   handleTagKeyDown: (e: React.KeyboardEvent) => void;
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
+
+export interface FormSectionProps {
+  formData: EventFormData;
+  updateFormData: <K extends keyof EventFormData>(
+    key: K,
+    value: EventFormData[K]
+  ) => void;
+}

@@ -21,27 +21,46 @@ export const useLivestreams = () => {
   } = useQuery({
     queryKey: ['livestreams'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First fetch livestreams
+      const { data: streamsData, error: streamsError } = await supabase
         .from('livestreams')
-        .select(`
-          *,
-          profiles:host_id (
-            display_name,
-            avatar_url
-          )
-        `)
+        .select(`*`)
         .in('status', ['scheduled', 'live'])
         .order('scheduled_start', { ascending: true });
 
-      if (error) throw error;
+      if (streamsError) throw streamsError;
 
-      return data.map((stream) => ({
-        ...stream,
-        host: {
-          name: stream.profiles.display_name || 'Unknown Host',
-          avatar: stream.profiles.avatar_url || `https://i.pravatar.cc/150?u=${stream.host_id}`,
-        }
-      })) as Livestream[];
+      // Then fetch profiles for each host
+      const livestreamsWithHosts = await Promise.all(
+        streamsData.map(async (stream) => {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('display_name, avatar_url')
+            .eq('id', stream.host_id)
+            .single();
+
+          if (profileError) {
+            console.error('Error fetching host profile:', profileError);
+            return {
+              ...stream,
+              host: {
+                name: 'Unknown Host',
+                avatar: `https://i.pravatar.cc/150?u=${stream.host_id}`,
+              }
+            };
+          }
+
+          return {
+            ...stream,
+            host: {
+              name: profileData.display_name || 'Unknown Host',
+              avatar: profileData.avatar_url || `https://i.pravatar.cc/150?u=${stream.host_id}`,
+            }
+          };
+        })
+      );
+
+      return livestreamsWithHosts as Livestream[];
     },
   });
 
@@ -185,26 +204,45 @@ export const useLivestreams = () => {
 
   // Fetch cameras for a specific livestream
   const getLivestreamCameras = async (livestreamId: string) => {
-    const { data, error } = await supabase
+    // First fetch camera entries
+    const { data: camerasData, error: camerasError } = await supabase
       .from('livestream_cameras')
-      .select(`
-        *,
-        profiles:user_id (
-          display_name,
-          avatar_url
-        )
-      `)
+      .select(`*`)
       .eq('livestream_id', livestreamId);
 
-    if (error) throw error;
+    if (camerasError) throw camerasError;
 
-    return data.map((camera) => ({
-      ...camera,
-      user: {
-        name: camera.profiles.display_name || 'Unknown User',
-        avatar: camera.profiles.avatar_url || `https://i.pravatar.cc/150?u=${camera.user_id}`,
-      }
-    })) as LivestreamCamera[];
+    // Then fetch profiles for each camera operator
+    const camerasWithProfiles = await Promise.all(
+      camerasData.map(async (camera) => {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('display_name, avatar_url')
+          .eq('id', camera.user_id)
+          .single();
+
+        if (profileError) {
+          console.error('Error fetching camera operator profile:', profileError);
+          return {
+            ...camera,
+            user: {
+              name: 'Unknown User',
+              avatar: `https://i.pravatar.cc/150?u=${camera.user_id}`,
+            }
+          };
+        }
+
+        return {
+          ...camera,
+          user: {
+            name: profileData.display_name || 'Unknown User',
+            avatar: profileData.avatar_url || `https://i.pravatar.cc/150?u=${camera.user_id}`,
+          }
+        };
+      })
+    );
+
+    return camerasWithProfiles as LivestreamCamera[];
   };
 
   // Start a livestream

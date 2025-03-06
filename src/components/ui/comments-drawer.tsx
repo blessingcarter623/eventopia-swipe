@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { X, Send } from "lucide-react";
 import { Comment as CommentComponent } from "./comment";
@@ -89,8 +90,4 @@ export function CommentsDrawer({
       </div>
     </div>
   );
-}
-
-function cn(...classes: any[]) {
-  return classes.filter(Boolean).join(" ");
 }

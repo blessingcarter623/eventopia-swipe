@@ -6,6 +6,7 @@ export class WebRTCService {
   private remoteStream: MediaStream | null = null;
   private onStreamHandler: ((stream: MediaStream) => void) | null = null;
   private onDisconnectHandler: (() => void) | null = null;
+  private onErrorHandler: ((error: Error) => void) | null = null;
 
   constructor() {
     // Configure ICE servers (STUN/TURN)
@@ -55,7 +56,21 @@ export class WebRTCService {
   // Start capturing local media
   async startLocalStream(constraints: MediaStreamConstraints = { video: true, audio: true }) {
     try {
+      console.log("Requesting media with constraints:", JSON.stringify(constraints));
+      
+      // First check if permissions are granted
+      try {
+        const permissions = await navigator.permissions.query({ name: 'camera' as PermissionName });
+        if (permissions.state === 'denied') {
+          throw new Error('Camera permission has been denied. Please enable camera access in your browser settings.');
+        }
+      } catch (err) {
+        // Some browsers don't support permissions API for camera, we'll try getUserMedia directly
+        console.log("Permissions API not supported, trying getUserMedia directly");
+      }
+      
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log("Got local stream successfully");
       
       // Add tracks to the peer connection
       if (this.peerConnection && this.localStream) {
@@ -69,6 +84,7 @@ export class WebRTCService {
       return this.localStream;
     } catch (error) {
       console.error('Error getting local stream:', error);
+      this.onErrorHandler?.(error instanceof Error ? error : new Error(String(error)));
       throw error;
     }
   }
@@ -81,6 +97,24 @@ export class WebRTCService {
   // Set handler for disconnection
   onDisconnect(handler: () => void) {
     this.onDisconnectHandler = handler;
+  }
+  
+  // Set handler for errors
+  onError(handler: (error: Error) => void) {
+    this.onErrorHandler = handler;
+  }
+
+  // Join a stream as a camera using a join token
+  async joinStreamAsCamera(joinToken: string) {
+    if (!this.localStream) {
+      throw new Error('Local stream must be started before joining as a camera');
+    }
+    
+    // In a real implementation, this would connect to a signaling server
+    // and establish connection with the livestream host using the joinToken
+    console.log(`Joining stream with token: ${joinToken}`);
+    
+    return true; // Indicating successful connection attempt
   }
 
   // Create an offer to initiate connection

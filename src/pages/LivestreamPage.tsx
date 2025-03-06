@@ -1,25 +1,32 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useWebRTC } from '@/hooks/useWebRTC';
 import { useLivestreams } from '@/hooks/useLivestreams';
 import { useAuth } from '@/context/AuthContext';
 import { LivestreamControls } from '@/components/livestream/LivestreamControls';
+import { JoinAsCamera } from '@/components/livestream/JoinAsCamera';
 import { NavigationBar } from '@/components/ui/navigation-bar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Users } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ChevronLeft, Users, AlertCircle, Camera } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const LivestreamPage = () => {
   const { livestreamId } = useParams<{ livestreamId: string }>();
   const { profile } = useAuth();
+  const { toast } = useToast();
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const [cameraToken, setCameraToken] = useState<string | null>(null);
   
   const {
     localStream,
     remoteStream,
     isConnected,
+    isLoading,
+    error,
     devices,
     settings,
     updateSettings,
@@ -32,11 +39,39 @@ const LivestreamPage = () => {
     startLivestream,
     endLivestream,
     isLoadingLivestreams,
+    addCamera,
   } = useLivestreams();
   
   const currentLivestream = livestreams.find(stream => stream.id === livestreamId);
   const isHost = currentLivestream?.host_id === profile?.id;
   const isLive = currentLivestream?.status === 'live';
+  
+  // Generate a camera join token
+  const generateCameraToken = async () => {
+    if (!livestreamId || !profile?.id) return;
+    
+    try {
+      const camera = await addCamera.mutateAsync({
+        livestreamId,
+        userId: profile.id,
+        cameraLabel: `${profile.display_name || 'User'}'s Camera`
+      });
+      
+      setCameraToken(camera.join_token);
+      
+      toast({
+        title: "Camera Join Token",
+        description: "Token generated successfully. Share this with additional camera operators.",
+      });
+    } catch (error) {
+      console.error("Failed to generate camera token:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate camera token",
+        variant: "destructive"
+      });
+    }
+  };
   
   useEffect(() => {
     if (localStream && localVideoRef.current) {
@@ -53,15 +88,54 @@ const LivestreamPage = () => {
   const handleStartStream = async () => {
     if (!livestreamId) return;
     
-    await startLocalStream();
-    await startLivestream(livestreamId);
+    try {
+      // First start capturing media
+      const stream = await startLocalStream();
+      if (!stream) {
+        toast({
+          title: "Stream Error",
+          description: "Could not access camera or microphone",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Then start the livestream
+      await startLivestream(livestreamId);
+      
+      toast({
+        title: "Stream Started",
+        description: "Your livestream is now active",
+      });
+    } catch (error) {
+      console.error("Failed to start stream:", error);
+      toast({
+        title: "Stream Error",
+        description: "Failed to start livestream",
+        variant: "destructive"
+      });
+    }
   };
   
   const handleStopStream = async () => {
     if (!livestreamId) return;
     
-    stopStreaming();
-    await endLivestream(livestreamId);
+    try {
+      stopStreaming();
+      await endLivestream(livestreamId);
+      
+      toast({
+        title: "Stream Ended",
+        description: "Your livestream has ended",
+      });
+    } catch (error) {
+      console.error("Failed to stop stream:", error);
+      toast({
+        title: "Error",
+        description: "Failed to end livestream",
+        variant: "destructive"
+      });
+    }
   };
 
   if (isLoadingLivestreams || !currentLivestream) {
@@ -99,7 +173,48 @@ const LivestreamPage = () => {
               </div>
             </div>
           </div>
+          
+          {/* Right side actions */}
+          {isHost && isLive && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-2"
+              onClick={generateCameraToken}
+            >
+              <Camera className="h-4 w-4" />
+              Add Camera
+            </Button>
+          )}
+          
+          {!isHost && !localStream && (
+            <JoinAsCamera livestreamId={livestreamId} />
+          )}
         </div>
+
+        {/* Camera token display */}
+        {cameraToken && (
+          <div className="p-4">
+            <Alert className="border-blue-500 bg-blue-500/10">
+              <AlertCircle className="h-4 w-4 text-blue-500" />
+              <AlertTitle className="text-blue-500">Camera Join Token</AlertTitle>
+              <AlertDescription className="text-blue-300">
+                Share this token with additional camera operators: <span className="font-mono bg-blue-500/20 px-2 py-1 rounded">{cameraToken}</span>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        {/* Error display */}
+        {error && (
+          <div className="p-4">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Stream Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          </div>
+        )}
 
         {/* Stream Content */}
         <div className="relative aspect-video bg-black">
@@ -120,7 +235,14 @@ const LivestreamPage = () => {
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
-              <p className="text-gray-500">No video signal</p>
+              {isLoading ? (
+                <div className="flex flex-col items-center gap-2">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-neon-yellow"></div>
+                  <p className="text-gray-500">Accessing camera...</p>
+                </div>
+              ) : (
+                <p className="text-gray-500">No video signal</p>
+              )}
             </div>
           )}
         </div>

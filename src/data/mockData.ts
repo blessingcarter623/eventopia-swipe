@@ -1,4 +1,3 @@
-
 import { Event, User, Comment } from "../types";
 
 export const mockUsers: User[] = [
@@ -12,6 +11,7 @@ export const mockUsers: User[] = [
     following: 378,
     posts: 264,
     isVerified: true,
+    role: "organizer",
   },
   {
     id: "2",
@@ -23,6 +23,7 @@ export const mockUsers: User[] = [
     following: 215,
     posts: 189,
     isVerified: true,
+    role: "organizer",
   },
   {
     id: "3",
@@ -32,6 +33,7 @@ export const mockUsers: User[] = [
     followers: 2300,
     following: 450,
     posts: 87,
+    role: "user",
   },
   {
     id: "4",
@@ -43,6 +45,7 @@ export const mockUsers: User[] = [
     following: 320,
     posts: 156,
     isVerified: true,
+    role: "organizer",
   },
   {
     id: "5",
@@ -52,6 +55,7 @@ export const mockUsers: User[] = [
     followers: 1200,
     following: 643,
     posts: 78,
+    role: "user",
   },
 ];
 

@@ -111,7 +111,7 @@ const OrganizerDashboard = () => {
       if (ticketData && ticketData.length > 0) {
         // Calculate total tickets sold and revenue
         const totalTicketsSold = ticketData.length;
-        const totalRevenue = ticketData.reduce((sum, ticket) => sum + parseFloat(ticket.price), 0);
+        const totalRevenue = ticketData.reduce((sum, ticket) => sum + parseFloat(String(ticket.price)), 0);
         
         // Calculate average attendance (checked in tickets / total tickets)
         const checkedInCount = ticketData.filter(ticket => ticket.checked_in).length;

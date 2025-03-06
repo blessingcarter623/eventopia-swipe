@@ -15,6 +15,7 @@ import SignUp from "./pages/SignUp";
 import Login from "./pages/Login";
 import UserDashboard from "./pages/UserDashboard";
 import OrganizerDashboard from "./pages/OrganizerDashboard";
+import CreateEventPage from "./pages/CreateEventPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,11 @@ const App = () => (
             <Route path="/organizer/dashboard" element={
               <ProtectedRoute requiredRole="organizer">
                 <OrganizerDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/create-event" element={
+              <ProtectedRoute requiredRole="organizer">
+                <CreateEventPage />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

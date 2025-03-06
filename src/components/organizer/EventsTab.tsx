@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Calendar, PlusCircle, Pencil, Trash2, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -65,16 +64,18 @@ const EventsTab = ({ events, averageTicketsSold, isLoading, refreshEvents }: Eve
     <div className="p-4 space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold text-white">Your Events</h3>
-        <Link to="/create-event">
-          <Button variant="outline" size="sm" className="border-neon-yellow text-neon-yellow hover:bg-neon-yellow hover:text-black">
-            <PlusCircle className="w-4 h-4 mr-2" />
-            New Event
-          </Button>
-        </Link>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="border-neon-yellow text-neon-yellow hover:bg-neon-yellow hover:text-black"
+          onClick={() => navigate("/create-event")}
+        >
+          <PlusCircle className="w-4 h-4 mr-2" />
+          New Event
+        </Button>
       </div>
       
       {isLoading ? (
-        // Loading skeleton
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="bg-darkbg-lighter p-4 rounded-xl">
@@ -167,7 +168,6 @@ const EventsTab = ({ events, averageTicketsSold, isLoading, refreshEvents }: Eve
         )
       )}
       
-      {/* Delete confirmation dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="bg-darkbg-lighter border-white/10 text-white">
           <DialogHeader>

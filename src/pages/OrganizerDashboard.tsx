@@ -9,6 +9,9 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { mockUsers, mockEvents } from "@/data/index"; // Fallback for development only
+import { PlusCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const OrganizerDashboard = () => {
   const [activeTab, setActiveTab] = useState('events');
@@ -250,6 +253,20 @@ const OrganizerDashboard = () => {
       <div className="flex-1 overflow-y-auto scrollbar-none pb-16">
         {/* Header */}
         <DashboardHeader />
+        
+        {/* Quick action buttons */}
+        <div className="px-4 py-2 flex justify-end">
+          <Link to="/create-event">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="border-neon-yellow text-neon-yellow hover:bg-neon-yellow hover:text-black"
+            >
+              <PlusCircle className="w-4 h-4 mr-2" />
+              Create Event
+            </Button>
+          </Link>
+        </div>
         
         {/* Organizer info */}
         <OrganizerProfile 

@@ -1,32 +1,29 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AuthForm } from "@/components/ui/auth-form";
 import { AuthNavigationBar } from "@/components/ui/auth-navigation-bar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const SignUp = () => {
-  const { toast } = useToast();
+  const { signUp, user } = useAuth();
   const navigate = useNavigate();
   const [userType, setUserType] = useState<'user' | 'organizer'>('user');
   
-  const handleSignUp = (data: any) => {
-    // In a real app, this would connect to your backend
-    console.log("Sign up data:", data);
-    
-    // Simulate a successful signup
-    toast({
-      title: "Account created!",
-      description: `Welcome to Moja, ${data.displayName}!`,
-    });
-    
-    // Redirect based on user type
-    if (data.isOrganizer) {
-      navigate("/organizer/dashboard");
-    } else {
+  useEffect(() => {
+    if (user) {
       navigate("/dashboard");
     }
+  }, [user, navigate]);
+  
+  const handleSignUp = async (data: any) => {
+    const userData = {
+      display_name: data.displayName,
+      role: data.isOrganizer ? 'organizer' : 'user',
+    };
+    
+    await signUp(data.email, data.password, userData);
   };
   
   return (

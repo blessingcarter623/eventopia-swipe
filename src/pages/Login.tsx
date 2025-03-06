@@ -1,35 +1,22 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { AuthForm } from "@/components/ui/auth-form";
 import { AuthNavigationBar } from "@/components/ui/auth-navigation-bar";
-import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const Login = () => {
-  const { toast } = useToast();
+  const { signIn, user } = useAuth();
   const navigate = useNavigate();
   
-  const handleLogin = (data: any) => {
-    // In a real app, this would connect to your backend
-    console.log("Login data:", data);
-    
-    // Simulate a successful login
-    const mockUser = {
-      displayName: "Test User",
-      role: data.email.includes("organizer") ? "organizer" : "user"
-    };
-    
-    toast({
-      title: "Logged in successfully!",
-      description: `Welcome back, ${mockUser.displayName}!`,
-    });
-    
-    // Redirect based on user type
-    if (mockUser.role === "organizer") {
-      navigate("/organizer/dashboard");
-    } else {
+  useEffect(() => {
+    if (user) {
       navigate("/dashboard");
     }
+  }, [user, navigate]);
+  
+  const handleLogin = async (data: any) => {
+    await signIn(data.email, data.password);
   };
   
   return (

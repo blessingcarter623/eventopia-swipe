@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Home, Search, Ticket, User, Plus, LogIn } from "lucide-react";
+import { Home, Search, Ticket, User, Plus, LogIn, Video } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 export function AuthNavigationBar() {
@@ -9,6 +9,7 @@ export function AuthNavigationBar() {
   const navItems = [
     { icon: Home, label: "Home", path: "/" },
     { icon: Search, label: "Discover", path: "/discover" },
+    { icon: Video, label: "Lives", path: "/livestreams" },
     { icon: LogIn, label: "Login", path: "/login" },
     { icon: Plus, label: "Sign Up", path: "/signup" },
   ];

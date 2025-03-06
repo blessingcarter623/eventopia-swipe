@@ -7,6 +7,9 @@ import FeelingSelector from "@/components/discover/FeelingSelector";
 import InviteFriendModal from "@/components/discover/InviteFriendModal";
 import EventList from "@/components/discover/EventList";
 import { useDiscoverEvents } from "@/hooks/useDiscoverEvents";
+import { LivestreamGrid } from "@/components/livestream/LivestreamGrid";
+import { Link } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 
 const Discover = () => {
   const [selectedFeeling, setSelectedFeeling] = useState<string>("All");
@@ -14,7 +17,7 @@ const Discover = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   
   // Use our custom hook to manage events and map loading
-  const { filteredEvents, isLoading, mapsLoaded } = useDiscoverEvents(selectedFeeling);
+  const { filteredEvents, isLoading, mapsLoaded, activeLivestreams } = useDiscoverEvents(selectedFeeling);
   
   // Handle feeling selection
   const handleSelectFeeling = (feeling: string) => {
@@ -39,6 +42,24 @@ const Discover = () => {
             onSelectFeeling={handleSelectFeeling}
             selectedFeeling={selectedFeeling}
           />
+          
+          {/* Live Streams Section */}
+          {activeLivestreams.length > 0 && (
+            <div className="my-6">
+              <div className="flex justify-between items-center mb-3">
+                <h2 className="text-xl font-semibold text-white">Live Now</h2>
+                <Link to="/livestreams" className="text-neon-yellow flex items-center text-sm">
+                  View all <ArrowRight className="w-4 h-4 ml-1" />
+                </Link>
+              </div>
+              
+              <LivestreamGrid 
+                livestreams={activeLivestreams.slice(0, 4)} 
+                title="" 
+                emptyMessage="" 
+              />
+            </div>
+          )}
           
           {/* Map View */}
           <div className="my-4">

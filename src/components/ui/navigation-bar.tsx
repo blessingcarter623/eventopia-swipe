@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Home, Search, Ticket, User, Plus, LogIn } from "lucide-react";
+import { Home, Search, Ticket, User, Plus, LogIn, Video } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 
@@ -11,6 +11,7 @@ export function NavigationBar() {
   const navItems = [
     { icon: Home, label: "Home", path: "/" },
     { icon: Search, label: "Discover", path: "/discover" },
+    { icon: Video, label: "Lives", path: "/livestreams" },
     { icon: null, label: "Create", path: "/create-event", requiredAuth: true },
     { icon: Ticket, label: "Tickets", path: "/tickets", requiredAuth: true },
     user ? 

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Event } from "@/types";
+import { Livestream } from "@/types/livestream";
 import { useToast } from "@/hooks/use-toast";
 
 export const useDiscoverEvents = (selectedFeeling: string) => {
@@ -143,6 +144,58 @@ export const useDiscoverEvents = (selectedFeeling: string) => {
     queryFn: fetchEvents,
   });
   
+  // Fetch active livestreams
+  const { data: activeLivestreams = [] } = useQuery({
+    queryKey: ['active-livestreams'],
+    queryFn: async (): Promise<Livestream[]> => {
+      try {
+        // First fetch livestreams
+        const { data: streamsData, error: streamsError } = await supabase
+          .from('livestreams')
+          .select('*')
+          .eq('status', 'live')
+          .order('actual_start', { ascending: false });
+          
+        if (streamsError) throw streamsError;
+        
+        // Then fetch profiles for each host
+        const livestreamsWithHosts = await Promise.all(
+          streamsData.map(async (stream) => {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('display_name, avatar_url')
+              .eq('id', stream.host_id)
+              .single();
+
+            if (profileError) {
+              console.error("Error fetching host profile:", profileError);
+              return {
+                ...stream,
+                host: {
+                  name: 'Unknown Host',
+                  avatar: `https://i.pravatar.cc/150?u=${stream.host_id}`,
+                }
+              };
+            }
+
+            return {
+              ...stream,
+              host: {
+                name: profileData.display_name || 'Unknown Host',
+                avatar: profileData.avatar_url || `https://i.pravatar.cc/150?u=${stream.host_id}`,
+              }
+            };
+          })
+        );
+
+        return livestreamsWithHosts as Livestream[];
+      } catch (error) {
+        console.error("Error fetching livestreams:", error);
+        return [];
+      }
+    },
+  });
+  
   // Filter events based on selected feeling
   const filteredEvents = selectedFeeling === "All" 
     ? allEvents 
@@ -157,6 +210,7 @@ export const useDiscoverEvents = (selectedFeeling: string) => {
     allEvents,
     filteredEvents,
     isLoading,
-    mapsLoaded
+    mapsLoaded,
+    activeLivestreams
   };
 };

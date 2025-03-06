@@ -1,13 +1,13 @@
-
 import React, { useState } from "react";
 import { NavigationBar } from "@/components/ui/navigation-bar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { mockEvents, mockUsers } from "@/data/index";
-import { Calendar, Users, BarChart3, PlusCircle, Pencil, ArrowLeft } from "lucide-react";
+import { Calendar, Users, BarChart3, PlusCircle, Pencil, ArrowLeft, Video, Upload } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { VideoCreationStudio } from "@/components/ui/video-creation-studio";
 
 const OrganizerDashboard = () => {
   const [activeTab, setActiveTab] = useState('events');
@@ -82,13 +82,20 @@ const OrganizerDashboard = () => {
         
         {/* Dashboard Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-3 bg-darkbg-lighter border-b border-white/10">
+          <TabsList className="grid grid-cols-4 bg-darkbg-lighter border-b border-white/10">
             <TabsTrigger 
               value="events" 
               className="data-[state=active]:text-neon-yellow data-[state=active]:border-b-2 data-[state=active]:border-neon-yellow rounded-none bg-transparent py-3"
             >
               <Calendar className="w-4 h-4 mr-2" />
               Events
+            </TabsTrigger>
+            <TabsTrigger 
+              value="video" 
+              className="data-[state=active]:text-neon-yellow data-[state=active]:border-b-2 data-[state=active]:border-neon-yellow rounded-none bg-transparent py-3"
+            >
+              <Video className="w-4 h-4 mr-2" />
+              Studio
             </TabsTrigger>
             <TabsTrigger 
               value="analytics" 
@@ -159,6 +166,10 @@ const OrganizerDashboard = () => {
                 </Button>
               </div>
             )}
+          </TabsContent>
+          
+          <TabsContent value="video" className="p-0">
+            <VideoCreationStudio />
           </TabsContent>
           
           <TabsContent value="analytics" className="p-4">

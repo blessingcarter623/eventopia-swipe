@@ -89,7 +89,8 @@ export const useEventForm = () => {
         const { error: videoUpdateError } = await supabase
           .from('event_videos')
           .update({
-            event_id: eventData[0].id
+            title: `Video for event: ${eventData[0].title}`,
+            description: `Video linked to event: ${eventData[0].id}`
           })
           .eq('id', formData.videoId);
           

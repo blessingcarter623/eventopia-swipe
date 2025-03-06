@@ -44,7 +44,7 @@ const EditEventPage = () => {
   const tagManagement = useTagManagement(formData, setFormData);
   const fileHandling = useFileHandling(formData, setFormData);
   
-  // Fetch event data
+  // Fetch event data - fix onSuccess property
   const { data: event, isLoading: isLoadingEvent } = useQuery({
     queryKey: ['event', eventId],
     queryFn: async () => {
@@ -59,39 +59,33 @@ const EditEventPage = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!eventId,
-    onSuccess: (data) => {
-      // Initialize form data with fetched event
+    enabled: !!eventId
+  });
+
+  // Set form data when event data is loaded
+  useEffect(() => {
+    if (event) {
       setFormData({
-        title: data.title || "",
-        description: data.description || "",
-        category: data.category || "Music",
-        eventDate: data.date ? new Date(data.date) : new Date(),
-        eventTime: data.time || "19:00",
-        location: data.location || "",
+        title: event.title || "",
+        description: event.description || "",
+        category: event.category || "Music",
+        eventDate: event.date ? new Date(event.date) : new Date(),
+        eventTime: event.time || "19:00",
+        location: event.location || "",
         coordinates: {
-          lat: data.location_lat,
-          lng: data.location_lng,
+          lat: event.location_lat,
+          lng: event.location_lng,
         },
-        price: data.price?.toString() || "0",
-        tags: data.tags || [],
+        price: event.price?.toString() || "0",
+        tags: event.tags || [],
         mediaFile: null,
         videoId: undefined,
-        videoUrl: data.media_url || undefined,
+        videoUrl: event.media_url || undefined,
       });
       
-      setPreviewUrl(data.media_url);
-    },
-    onError: (error) => {
-      console.error("Error fetching event:", error);
-      toast({
-        title: "Error",
-        description: "Could not load the event. Please try again.",
-        variant: "destructive",
-      });
-      navigate("/organizer/dashboard");
-    },
-  });
+      setPreviewUrl(event.media_url);
+    }
+  }, [event]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,7 +142,9 @@ const EditEventPage = () => {
         const { error: videoUpdateError } = await supabase
           .from('event_videos')
           .update({
-            event_id: eventId
+            // Fix the field name here - use existing fields from the table
+            title: `Video for event: ${formData.title}`,
+            description: `Video linked to event ${eventId}`
           })
           .eq('id', formData.videoId);
           

@@ -30,6 +30,12 @@ const EventForm: React.FC<EventFormProps> = ({
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
+  // Determine if this is an edit or create form based on whether title exists
+  const isEditMode = formData.title !== "";
+  const buttonText = isLoading 
+    ? (isEditMode ? "Updating..." : "Creating...") 
+    : (isEditMode ? "Update Event" : "Create Event");
+
   return (
     <form onSubmit={handleSubmit} className="p-4 space-y-6 max-w-xl mx-auto">
       <BasicInfoSection 
@@ -75,7 +81,7 @@ const EventForm: React.FC<EventFormProps> = ({
           className="w-full bg-neon-yellow text-black hover:bg-neon-yellow/90"
           disabled={isLoading}
         >
-          {isLoading ? "Creating..." : "Create Event"}
+          {buttonText}
         </Button>
       </div>
     </form>

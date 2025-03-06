@@ -1,19 +1,88 @@
-
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { EventCard } from "@/components/ui/event-card";
 import { CommentsDrawer } from "@/components/ui/comments-drawer";
 import { NavigationBar } from "@/components/ui/navigation-bar";
-import { mockEvents, mockComments } from "@/data/index";
+import { mockComments } from "@/data/index";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronUp, ChevronDown } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Event } from "@/types";
+import { useQuery } from "@tanstack/react-query";
+
+const fetchEvents = async (): Promise<Event[]> => {
+  const { data, error } = await supabase
+    .from('events')
+    .select(`
+      id,
+      title,
+      description,
+      media_type,
+      media_url,
+      thumbnail_url,
+      location,
+      date,
+      time,
+      price,
+      category,
+      tags,
+      organizer_id,
+      profiles:organizer_id (
+        id,
+        display_name,
+        avatar_url,
+        is_verified
+      )
+    `)
+    .order('created_at', { ascending: false });
+  
+  if (error) {
+    console.error("Error fetching events:", error);
+    throw error;
+  }
+  
+  // Transform the data to match the Event type
+  return data.map(event => ({
+    id: event.id,
+    title: event.title,
+    description: event.description || '',
+    media: {
+      type: event.media_type as 'image' | 'video',
+      url: event.media_url || '',
+      thumbnail: event.thumbnail_url || '',
+    },
+    location: event.location || '',
+    date: event.date ? new Date(event.date).toISOString() : new Date().toISOString(),
+    time: event.time || '',
+    price: typeof event.price === 'number' ? event.price : 'Free',
+    category: event.category || '',
+    organizer: {
+      id: event.profiles.id,
+      name: event.profiles.display_name || 'Event Organizer',
+      avatar: event.profiles.avatar_url || 'https://i.pravatar.cc/150?u=' + event.profiles.id,
+      isVerified: event.profiles.is_verified || false,
+    },
+    stats: {
+      likes: Math.floor(Math.random() * 1000),
+      comments: Math.floor(Math.random() * 100),
+      shares: Math.floor(Math.random() * 500),
+      views: Math.floor(Math.random() * 10000),
+    },
+    tags: event.tags || [],
+    isSaved: false,
+  }));
+};
 
 const Index = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState(mockComments);
-  const [events, setEvents] = useState(mockEvents);
   const [followedOrganizers, setFollowedOrganizers] = useState<string[]>([]);
   const { toast } = useToast();
+  
+  const { data: events = [], isLoading, isError } = useQuery({
+    queryKey: ['events'],
+    queryFn: fetchEvents,
+  });
   
   const containerRef = useRef<HTMLDivElement>(null);
   const startY = useRef<number | null>(null);
@@ -140,14 +209,8 @@ const Index = () => {
     };
   }, [handleSwipe]);
   
-  const handleLike = (eventId: string) => {
-    // Update the UI to reflect the like status
-    setEvents(events.map(event => 
-      event.id === eventId 
-        ? { ...event, stats: { ...event.stats, likes: event.stats.likes + 1 } } 
-        : event
-    ));
-    
+  const handleLike = async (eventId: string) => {
+    // In a real app, this would call an API to like the event
     toast({
       title: "Liked!",
       description: "You liked this event",
@@ -290,6 +353,26 @@ const Index = () => {
       )
     );
   };
+  
+  if (isLoading) {
+    return (
+      <div className="app-height bg-darkbg flex flex-col items-center justify-center">
+        <div className="text-neon-yellow text-xl animate-pulse">Loading events...</div>
+      </div>
+    );
+  }
+  
+  if (isError || events.length === 0) {
+    return (
+      <div className="app-height bg-darkbg flex flex-col items-center justify-center p-4">
+        <div className="text-neon-yellow text-xl mb-4">No events found</div>
+        <p className="text-white text-center">
+          There are no events to display right now. Check back later or try refreshing the page.
+        </p>
+        <NavigationBar />
+      </div>
+    );
+  }
   
   return (
     <div className="app-height bg-darkbg flex flex-col">

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { EventCard } from "@/components/ui/event-card";
 import { CommentsDrawer } from "@/components/ui/comments-drawer";
@@ -11,7 +10,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 
 const fetchEvents = async (): Promise<Event[]> => {
-  // First fetch events
   const { data: events, error } = await supabase
     .from('events')
     .select('*')
@@ -22,7 +20,6 @@ const fetchEvents = async (): Promise<Event[]> => {
     throw error;
   }
 
-  // Then fetch organizer profiles for the events
   const eventIds = events.map(event => event.organizer_id);
   const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
@@ -34,10 +31,8 @@ const fetchEvents = async (): Promise<Event[]> => {
     throw profilesError;
   }
 
-  // Create a map of profiles for easy lookup
   const profileMap = new Map(profiles.map(profile => [profile.id, profile]));
   
-  // Transform the data to match the Event type
   return events.map(event => {
     const organizer = profileMap.get(event.organizer_id);
     return {
@@ -76,6 +71,8 @@ const Index = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showComments, setShowComments] = useState(false);
   const [followedOrganizers, setFollowedOrganizers] = useState<string[]>([]);
+  const [showFollowingToast, setShowFollowingToast] = useState(false);
+  const [activeEventIndex, setActiveEventIndex] = useState(0);
   const { toast } = useToast();
   const { user } = useAuth();
   
@@ -89,12 +86,10 @@ const Index = () => {
   const isSwiping = useRef(false);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   
-  // Initialize video refs based on events length
   useEffect(() => {
     videoRefs.current = Array(events.length).fill(null);
   }, [events.length]);
   
-  // Preload videos for faster rendering
   useEffect(() => {
     const preloadNextVideo = (index: number) => {
       if (index < events.length - 1 && events[index + 1].media.type === "video") {
@@ -105,7 +100,6 @@ const Index = () => {
       }
     };
     
-    // Preload current and next videos
     if (events[currentIndex]?.media.type === "video") {
       const currentVideo = videoRefs.current[currentIndex];
       if (currentVideo) {
@@ -114,10 +108,8 @@ const Index = () => {
       }
     }
     
-    // Preload next video for faster transition
     preloadNextVideo(currentIndex);
     
-    // Preload previous video if available
     if (currentIndex > 0 && events[currentIndex - 1].media.type === "video") {
       const prevVideo = videoRefs.current[currentIndex - 1];
       if (prevVideo) {
@@ -130,7 +122,9 @@ const Index = () => {
     if (isSwiping.current) return;
     isSwiping.current = true;
     
-    // Pause the current video
+    document.documentElement.style.setProperty('--swipe-direction', direction === "up" ? "-100%" : "100%");
+    document.documentElement.classList.add('swiping');
+    
     if (events[currentIndex]?.media.type === "video") {
       const currentVideo = videoRefs.current[currentIndex];
       if (currentVideo) {
@@ -139,21 +133,28 @@ const Index = () => {
     }
     
     if (direction === "up" && currentIndex < events.length - 1) {
-      setCurrentIndex(prevIndex => prevIndex + 1);
+      setCurrentIndex(prevIndex => {
+        setActiveEventIndex(prevIndex + 1);
+        return prevIndex + 1;
+      });
     } else if (direction === "down" && currentIndex > 0) {
-      setCurrentIndex(prevIndex => prevIndex - 1);
+      setCurrentIndex(prevIndex => {
+        setActiveEventIndex(prevIndex - 1);
+        return prevIndex - 1;
+      });
     }
     
-    // Reset swiping flag after animation and play the new video
     setTimeout(() => {
+      document.documentElement.classList.remove('swiping');
       isSwiping.current = false;
+      
       if (events[currentIndex]?.media.type === "video") {
         const newVideo = videoRefs.current[currentIndex];
         if (newVideo) {
           newVideo.play().catch(err => console.log("Video autoplay prevented:", err));
         }
       }
-    }, 300);
+    }, 400);
   }, [currentIndex, events]);
   
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -166,7 +167,6 @@ const Index = () => {
     const currentY = e.touches[0].clientY;
     const diff = startY.current - currentY;
     
-    // Only trigger swipe if movement is significant (more than 30px for faster response)
     if (Math.abs(diff) > 30) {
       if (diff > 0) {
         handleSwipe("up");
@@ -181,13 +181,11 @@ const Index = () => {
     startY.current = null;
   };
   
-  // Add wheel event support for desktop with smooth snap scrolling
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
       if (isSwiping.current) return;
       
-      // Use a threshold to make the snap scroll more responsive
       if (Math.abs(e.deltaY) > 30) {
         if (e.deltaY > 0) {
           handleSwipe("up");
@@ -224,9 +222,13 @@ const Index = () => {
       description: "You liked this event",
     });
     
-    // In a real app, you would update Supabase here
-    // For example:
-    // await supabase.from('event_likes').insert({ user_id: user.id, event_id: eventId });
+    const heartIcon = document.querySelector(`[data-event-id="${eventId}"] .heart-icon`);
+    if (heartIcon) {
+      heartIcon.classList.add('heart-animation');
+      setTimeout(() => {
+        heartIcon?.classList.remove('heart-animation');
+      }, 700);
+    }
   };
   
   const handleFollow = (organizerId: string) => {
@@ -239,7 +241,9 @@ const Index = () => {
       return;
     }
     
-    if (followedOrganizers.includes(organizerId)) {
+    const isCurrentlyFollowing = followedOrganizers.includes(organizerId);
+    
+    if (isCurrentlyFollowing) {
       setFollowedOrganizers(prev => prev.filter(id => id !== organizerId));
       toast({
         title: "Unfollowed!",
@@ -247,19 +251,12 @@ const Index = () => {
       });
     } else {
       setFollowedOrganizers(prev => [...prev, organizerId]);
-      toast({
-        title: "Following!",
-        description: "You are now following this organizer",
-      });
+      setShowFollowingToast(true);
+      
+      setTimeout(() => {
+        setShowFollowingToast(false);
+      }, 2000);
     }
-    
-    // In a real app, you would update Supabase here
-    // For example:
-    // if (followedOrganizers.includes(organizerId)) {
-    //   await supabase.from('follows').delete().eq('user_id', user.id).eq('organizer_id', organizerId);
-    // } else {
-    //   await supabase.from('follows').insert({ user_id: user.id, organizer_id: organizerId });
-    // }
   };
   
   const handleComment = (eventId: string) => {
@@ -279,10 +276,6 @@ const Index = () => {
       title: "Shared!",
       description: "Event shared with your followers",
     });
-    
-    // In a real app, you would update Supabase here
-    // For example:
-    // await supabase.from('shares').insert({ user_id: user.id, event_id: eventId });
   };
   
   const handleBookmark = (eventId: string) => {
@@ -299,16 +292,19 @@ const Index = () => {
       title: "Saved!",
       description: "Event added to your saved collection",
     });
-    
-    // In a real app, you would update Supabase here
-    // For example:
-    // await supabase.from('saved_events').insert({ user_id: user.id, event_id: eventId });
   };
   
   if (isLoading) {
     return (
       <div className="app-height bg-darkbg flex flex-col items-center justify-center">
-        <div className="text-neon-yellow text-xl animate-pulse">Loading events...</div>
+        <div className="text-neon-yellow text-xl">
+          <div className="flex items-center space-x-2">
+            <div className="w-4 h-4 bg-neon-yellow rounded-full animate-ping"></div>
+            <div className="w-4 h-4 bg-neon-yellow rounded-full animate-ping" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-4 h-4 bg-neon-yellow rounded-full animate-ping" style={{ animationDelay: '0.4s' }}></div>
+          </div>
+          <div className="mt-4">Loading events...</div>
+        </div>
       </div>
     );
   }
@@ -327,7 +323,6 @@ const Index = () => {
   
   return (
     <div className="app-height bg-darkbg flex flex-col">
-      {/* App Wrapper */}
       <div 
         ref={containerRef}
         className="flex-1 overflow-hidden relative snap-y snap-mandatory"
@@ -335,12 +330,17 @@ const Index = () => {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Event Cards */}
-        <div className="h-full w-full">
+        <div className="h-full w-full transform transition-transform duration-400">
           {events.map((event, index) => (
             <div 
               key={event.id} 
-              className="h-full w-full snap-start snap-always"
+              className="h-full w-full snap-start snap-always absolute inset-0 transition-opacity duration-400"
+              style={{ 
+                opacity: index === currentIndex ? 1 : 0,
+                pointerEvents: index === currentIndex ? 'auto' : 'none',
+                zIndex: index === currentIndex ? 10 : 1
+              }}
+              data-event-id={event.id}
             >
               <EventCard
                 event={event}
@@ -360,8 +360,7 @@ const Index = () => {
           ))}
         </div>
         
-        {/* Navigation Indicators */}
-        <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex flex-col items-center space-y-2 z-10">
+        <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex flex-col items-center space-y-2 z-30">
           {events.map((_, index) => (
             <div
               key={index}
@@ -372,34 +371,40 @@ const Index = () => {
           ))}
         </div>
         
-        {/* Swipe Indicators */}
-        <div className="absolute left-0 right-0 top-4 flex justify-center z-10 pointer-events-none">
-          {currentIndex > 0 && (
+        {currentIndex > 0 && (
+          <div className="absolute left-0 right-0 top-4 flex justify-center z-30 pointer-events-none">
             <div className="animate-bounce text-white/70 flex flex-col items-center">
               <ChevronUp className="w-6 h-6" />
-              <span className="text-xs">Swipe up</span>
+              <span className="text-xs">Previous event</span>
             </div>
-          )}
-        </div>
+          </div>
+        )}
         
-        <div className="absolute left-0 right-0 bottom-16 flex justify-center z-10 pointer-events-none">
-          {currentIndex < events.length - 1 && (
+        {currentIndex < events.length - 1 && (
+          <div className="absolute left-0 right-0 bottom-16 flex justify-center z-30 pointer-events-none">
             <div className="animate-bounce text-white/70 flex flex-col items-center">
-              <span className="text-xs">Swipe down</span>
+              <span className="text-xs">Next event</span>
               <ChevronDown className="w-6 h-6" />
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
       
-      {/* Comments Drawer */}
+      {showFollowingToast && (
+        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/80 text-white px-6 py-4 rounded-xl z-50 animate-fade-in">
+          <div className="text-center">
+            <div className="text-neon-yellow text-2xl mb-2">Following!</div>
+            <p>You are now following this organizer</p>
+          </div>
+        </div>
+      )}
+      
       <CommentsDrawer
         eventId={events[currentIndex]?.id || ""}
         isOpen={showComments}
         onClose={() => setShowComments(false)}
       />
       
-      {/* Bottom Navigation */}
       <NavigationBar />
     </div>
   );

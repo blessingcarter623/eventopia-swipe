@@ -1,10 +1,11 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Event } from "@/types";
-import { Heart, MessageCircle, Share2, Bookmark, Calendar, MapPin, UserPlus, UserCheck } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, Calendar, MapPin, UserPlus, UserCheck, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "./button";
+import { Badge } from "./badge";
 
 interface EventCardProps {
   event: Event;
@@ -33,7 +34,19 @@ export function EventCard({
 }: EventCardProps) {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(event.isSaved || false);
+  const [showFullDescription, setShowFullDescription] = useState(false);
   const localVideoRef = useRef<HTMLVideoElement>(null);
+  const descriptionRef = useRef<HTMLParagraphElement>(null);
+  const [isDescriptionOverflowing, setIsDescriptionOverflowing] = useState(false);
+  
+  // Check if description is overflowing
+  useEffect(() => {
+    if (descriptionRef.current) {
+      setIsDescriptionOverflowing(
+        descriptionRef.current.scrollHeight > descriptionRef.current.clientHeight
+      );
+    }
+  }, [event.description]);
 
   // Handle video playback based on card visibility
   useEffect(() => {
@@ -89,22 +102,25 @@ export function EventCard({
             preload="auto"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/70" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/80" />
       </div>
       
-      {/* Top Bar */}
+      {/* Top Bar with User Info */}
       <div className="flex justify-between items-center p-4 z-10">
         <div className="flex items-center">
-          <img 
-            src={event.organizer.avatar} 
-            alt={event.organizer.name}
-            className="w-10 h-10 rounded-full object-cover border-2 border-neon-yellow"
-          />
+          <div className="relative">
+            <img 
+              src={event.organizer.avatar} 
+              alt={event.organizer.name}
+              className="w-10 h-10 rounded-full object-cover border-2 border-neon-yellow"
+            />
+            <div className="absolute bottom-0 right-0 w-4 h-4 bg-neon-yellow rounded-full flex items-center justify-center text-xs text-black font-bold">+</div>
+          </div>
           <div className="ml-2">
             <div className="flex items-center">
               <p className="text-white font-semibold">{event.organizer.name}</p>
               {event.organizer.isVerified && (
-                <span className="ml-1 bg-neon-yellow text-black text-xs px-1 rounded-full">✓</span>
+                <span className="ml-1 text-neon-yellow">✓</span>
               )}
             </div>
             <p className="text-gray-300 text-xs">{formatDistanceToNow(new Date(event.date), { addSuffix: true })}</p>
@@ -133,78 +149,136 @@ export function EventCard({
         </button>
       </div>
       
-      {/* Event Info */}
-      <div className="mt-auto z-10">
-        <div className="p-4 glass-card rounded-t-3xl">
-          <h2 className="text-2xl font-bold text-white mb-2">{event.title}</h2>
-          <p className="text-gray-300 text-sm line-clamp-2 mb-3">{event.description}</p>
-          
-          <div className="flex flex-wrap gap-2 mb-3">
-            {event.tags.map((tag) => (
-              <span key={tag} className="bg-white/10 px-2 py-1 rounded-full text-xs text-white">
-                #{tag}
-              </span>
-            ))}
+      {/* Right Side Action Icons */}
+      <div className="absolute right-4 bottom-1/3 flex flex-col gap-5 z-20">
+        <button 
+          className="flex flex-col items-center"
+          onClick={handleLike}
+          aria-label="Like event"
+        >
+          <div className="bg-black/30 w-12 h-12 rounded-full flex items-center justify-center">
+            <Heart 
+              className={cn(
+                "w-7 h-7 transition-all duration-300 transform hover:scale-110", 
+                liked ? "fill-neon-red text-neon-red" : "text-white"
+              )} 
+            />
           </div>
-          
-          <div className="flex justify-between items-center mb-3">
-            <div className="flex items-center text-gray-300 text-sm">
-              <Calendar className="w-4 h-4 mr-1" />
-              <span>{new Date(event.date).toLocaleDateString()} • {event.time}</span>
-            </div>
-            <div className="flex items-center text-gray-300 text-sm">
-              <MapPin className="w-4 h-4 mr-1" />
-              <span>{event.location}</span>
-            </div>
+          <span className="text-xs text-white mt-1">{liked ? event.stats.likes + 1 : event.stats.likes}</span>
+        </button>
+        
+        <button 
+          className="flex flex-col items-center"
+          onClick={showComments}
+          aria-label="Show comments"
+        >
+          <div className="bg-black/30 w-12 h-12 rounded-full flex items-center justify-center">
+            <MessageCircle className="w-7 h-7 text-white transition-all duration-300 transform hover:scale-110" />
           </div>
-          
-          <div className="flex justify-between items-center">
-            <div className="text-neon-yellow font-bold">
-              {typeof event.price === 'number' ? `$${event.price.toFixed(2)}` : event.price}
-            </div>
-            <Button className="bg-neon-yellow hover:bg-neon-yellow/90 text-black font-bold px-6 py-2 rounded-full">
-              Get Tickets
-            </Button>
+          <span className="text-xs text-white mt-1">{event.stats.comments}</span>
+        </button>
+        
+        <button 
+          className="flex flex-col items-center"
+          onClick={() => onShare(event.id)}
+          aria-label="Share event"
+        >
+          <div className="bg-black/30 w-12 h-12 rounded-full flex items-center justify-center">
+            <Share2 className="w-7 h-7 text-white transition-all duration-300 transform hover:scale-110" />
+          </div>
+          <span className="text-xs text-white mt-1">{event.stats.shares}</span>
+        </button>
+        
+        <button 
+          className="flex flex-col items-center"
+          onClick={handleSave}
+          aria-label="Save event"
+        >
+          <div className="bg-black/30 w-12 h-12 rounded-full flex items-center justify-center">
+            <Bookmark 
+              className={cn(
+                "w-7 h-7 transition-all duration-300 transform hover:scale-110", 
+                saved ? "fill-neon-yellow text-neon-yellow" : "text-white"
+              )} 
+            />
+          </div>
+          <span className="text-xs text-white mt-1">Save</span>
+        </button>
+      </div>
+      
+      {/* Event Info at Bottom */}
+      <div className="mt-auto z-10 px-4 pb-20">
+        <h2 className="text-2xl font-bold text-white mb-2">{event.title}</h2>
+        
+        <div 
+          ref={descriptionRef}
+          className={cn(
+            "text-white text-sm mb-3 transition-all duration-300",
+            showFullDescription ? "" : "line-clamp-2"
+          )}
+        >
+          {event.description}
+        </div>
+        
+        {isDescriptionOverflowing && (
+          <button 
+            className="text-gray-300 text-xs mb-3"
+            onClick={() => setShowFullDescription(!showFullDescription)}
+          >
+            {showFullDescription ? "Show less" : "Read more"}
+          </button>
+        )}
+        
+        <div className="flex flex-wrap gap-2 mb-3">
+          {event.tags.map((tag) => (
+            <Badge 
+              key={tag} 
+              variant="outline" 
+              className="bg-black/30 border-white/20 text-white hover:bg-black/50"
+            >
+              #{tag}
+            </Badge>
+          ))}
+        </div>
+        
+        <div className="flex justify-between items-center mb-3">
+          <div className="flex items-center text-white text-sm">
+            <Calendar className="w-4 h-4 mr-1 text-neon-yellow" />
+            <span>{new Date(event.date).toLocaleDateString()} • {event.time}</span>
+          </div>
+          <div className="flex items-center text-white text-sm">
+            <MapPin className="w-4 h-4 mr-1 text-neon-yellow" />
+            <span>{event.location}</span>
           </div>
         </div>
         
-        {/* Action Bar */}
-        <div className="flex justify-between bg-darkbg-lighter p-4 rounded-b-3xl border-t border-white/5">
-          <button 
-            className="flex flex-col items-center" 
-            onClick={handleLike}
-            aria-label="Like event"
+        <div className="flex justify-between items-center">
+          <div className="text-neon-yellow font-bold text-xl">
+            {typeof event.price === 'number' ? `$${event.price.toFixed(2)}` : event.price}
+          </div>
+          <Button 
+            className="bg-neon-yellow hover:bg-neon-yellow/90 text-black font-bold px-6 py-2 rounded-full shadow-lg transition-transform duration-200 transform hover:scale-105"
           >
-            <Heart className={cn("w-6 h-6", liked ? "fill-neon-red text-neon-red" : "text-white")} />
-            <span className="text-xs text-gray-300 mt-1">{liked ? event.stats.likes + 1 : event.stats.likes}</span>
-          </button>
-          
-          <button 
-            className="flex flex-col items-center"
-            onClick={showComments}
-            aria-label="Show comments"
-          >
-            <MessageCircle className="w-6 h-6 text-white" />
-            <span className="text-xs text-gray-300 mt-1">{event.stats.comments}</span>
-          </button>
-          
-          <button 
-            className="flex flex-col items-center"
-            onClick={() => onShare(event.id)}
-            aria-label="Share event"
-          >
-            <Share2 className="w-6 h-6 text-white" />
-            <span className="text-xs text-gray-300 mt-1">{event.stats.shares}</span>
-          </button>
-          
-          <button 
-            className="flex flex-col items-center"
-            onClick={handleSave}
-            aria-label="Save event"
-          >
-            <Bookmark className={cn("w-6 h-6", saved ? "fill-neon-yellow text-neon-yellow" : "text-white")} />
-            <span className="text-xs text-gray-300 mt-1">Save</span>
-          </button>
+            Get Tickets
+          </Button>
+        </div>
+        
+        {/* Music Playing Indicator (TikTok-style) */}
+        <div className="flex items-center mt-3 text-white text-xs">
+          <div className="w-3 h-3 rounded-full bg-neon-yellow animate-pulse mr-2"></div>
+          <div className="overflow-hidden max-w-[60%]">
+            <div className="animate-marquee whitespace-nowrap">
+              {event.category} • {event.organizer.name} • {event.title} • {event.tags.join(' • ')}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Swipe Down Indicator */}
+      <div className="absolute left-0 right-0 bottom-4 flex justify-center z-20 pointer-events-none">
+        <div className="animate-bounce text-white/70 flex flex-col items-center">
+          <span className="text-xs">Swipe for next event</span>
+          <ChevronDown className="w-5 h-5" />
         </div>
       </div>
     </div>

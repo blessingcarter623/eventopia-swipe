@@ -12,7 +12,7 @@ export const initializeMap = (
   onSelectLocation: (address: string, lat: number, lng: number) => void,
   defaultLocation?: string
 ) => {
-  if (!mapRef.current || !window.google) return;
+  if (!mapRef.current || !window.google) return false;
 
   try {
     // Default location (center of South Africa if no default provided)
@@ -22,7 +22,10 @@ export const initializeMap = (
     mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
       center: defaultPos,
       zoom: 6,
-      styles: getMapStyles()
+      styles: getMapStyles(),
+      mapTypeControl: false,
+      fullscreenControl: false,
+      streetViewControl: false
     });
 
     // Create a marker
@@ -30,12 +33,14 @@ export const initializeMap = (
       map: mapInstanceRef.current,
       draggable: true,
       position: defaultPos,
+      visible: false // Start hidden until a location is selected
     });
 
     // Add click listener to the map
     mapInstanceRef.current.addListener("click", (e: any) => {
       if (markerRef.current) {
         markerRef.current.setPosition(e.latLng);
+        markerRef.current.setVisible(true);
         handleAddressFromLatLng(e.latLng.lat(), e.latLng.lng());
       }
     });
@@ -53,7 +58,7 @@ export const initializeMap = (
     }
 
     // If default location is provided, geocode it
-    if (defaultLocation) {
+    if (defaultLocation && defaultLocation.trim() !== "") {
       geocodeAddress(defaultLocation, mapInstanceRef, markerRef, onSelectLocation);
     }
 

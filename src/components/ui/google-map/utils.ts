@@ -9,6 +9,7 @@ export const placeMarkerAndGetAddress = (
 ) => {
   if (markerRef.current) {
     markerRef.current.setPosition(latLng);
+    markerRef.current.setVisible(true);
     getAddressFromLatLng(latLng.lat(), latLng.lng());
   }
 };
@@ -21,15 +22,20 @@ export const getAddressFromLatLng = (
   lng: number,
   onSelectLocation: (address: string, lat: number, lng: number) => void
 ) => {
-  if (!window.google) return;
+  if (!window.google || !window.google.maps) {
+    console.error("Google Maps not loaded");
+    return;
+  }
   
   const geocoder = new window.google.maps.Geocoder();
   const latlng = { lat, lng };
   
   geocoder.geocode({ location: latlng }, (results: any, status: any) => {
-    if (status === "OK" && results[0]) {
+    if (status === "OK" && results && results.length > 0) {
       onSelectLocation(results[0].formatted_address, lat, lng);
     } else {
+      console.warn("Geocoder failed due to: " + status);
+      // Fallback to coordinates string when address lookup fails
       onSelectLocation(`${lat.toFixed(6)}, ${lng.toFixed(6)}`, lat, lng);
     }
   });
@@ -44,11 +50,14 @@ export const geocodeAddress = (
   markerRef: React.MutableRefObject<google.maps.Marker | null>,
   onSelectLocation: (address: string, lat: number, lng: number) => void
 ) => {
-  if (!window.google) return;
+  if (!window.google || !window.google.maps) {
+    console.error("Google Maps not loaded");
+    return;
+  }
   
   const geocoder = new window.google.maps.Geocoder();
   geocoder.geocode({ address }, (results: any, status: any) => {
-    if (status === "OK" && results[0]) {
+    if (status === "OK" && results && results.length > 0) {
       const location = results[0].geometry.location;
       
       if (mapInstanceRef.current) {
@@ -58,9 +67,12 @@ export const geocodeAddress = (
       
       if (markerRef.current) {
         markerRef.current.setPosition(location);
+        markerRef.current.setVisible(true);
       }
       
       onSelectLocation(results[0].formatted_address, location.lat(), location.lng());
+    } else {
+      console.warn("Geocode was not successful for the following reason: " + status);
     }
   });
 };

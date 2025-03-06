@@ -19,7 +19,7 @@ export const setupAutocomplete = (
     autocompleteRef.current = new window.google.maps.places.Autocomplete(
       searchInputRef.current,
       { 
-        types: ["geocode"],
+        types: ["geocode", "establishment"],
         fields: ["address_components", "formatted_address", "geometry", "name"]
       }
     );
@@ -32,7 +32,7 @@ export const setupAutocomplete = (
       if (place && place.geometry && place.geometry.location) {
         const lat = place.geometry.location.lat();
         const lng = place.geometry.location.lng();
-        const address = place.formatted_address || "";
+        const address = place.formatted_address || place.name || "";
         
         if (mapInstanceRef.current) {
           mapInstanceRef.current.setCenter({ lat, lng });
@@ -41,6 +41,7 @@ export const setupAutocomplete = (
         
         if (markerRef.current) {
           markerRef.current.setPosition({ lat, lng });
+          markerRef.current.setVisible(true);
         }
         
         onSelectLocation(address, lat, lng);

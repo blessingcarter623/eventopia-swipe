@@ -20,7 +20,7 @@ const SignUp = () => {
   const handleSignUp = async (data: any) => {
     const userData = {
       display_name: data.displayName,
-      role: data.isOrganizer ? 'organizer' : 'user',
+      role: data.isOrganizer ? 'organizer' : 'user' as 'user' | 'organizer', // explicitly type as union type
     };
     
     await signUp(data.email, data.password, userData);

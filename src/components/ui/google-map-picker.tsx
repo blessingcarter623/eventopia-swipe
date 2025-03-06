@@ -57,7 +57,9 @@ const GoogleMapPicker: React.FC<GoogleMapPickerProps> = ({
 
       return () => {
         window.initMap = () => {};
-        document.head.removeChild(script);
+        if (script.parentNode) {
+          document.head.removeChild(script);
+        }
       };
     };
 
@@ -171,14 +173,16 @@ const GoogleMapPicker: React.FC<GoogleMapPickerProps> = ({
       });
 
       // Add dragend listener to the marker
-      markerRef.current.addListener("dragend", () => {
-        if (markerRef.current && markerRef.current.getPosition()) {
-          const position = markerRef.current.getPosition();
-          if (position) {
-            getAddressFromLatLng(position.lat(), position.lng());
+      if (markerRef.current) {
+        markerRef.current.addListener("dragend", () => {
+          if (markerRef.current) {
+            const position = markerRef.current.getPosition();
+            if (position) {
+              getAddressFromLatLng(position.lat(), position.lng());
+            }
           }
-        }
-      });
+        });
+      }
 
       // If default location is provided, geocode it
       if (defaultLocation) {
@@ -192,23 +196,27 @@ const GoogleMapPicker: React.FC<GoogleMapPickerProps> = ({
           { types: ["geocode"] }
         );
         
-        autocompleteRef.current.addListener("place_changed", () => {
-          const place = autocompleteRef.current?.getPlace();
-          if (place && place.geometry && place.geometry.location) {
-            const lat = place.geometry.location.lat();
-            const lng = place.geometry.location.lng();
-            const address = place.formatted_address || "";
-            
-            mapInstanceRef.current?.setCenter({ lat, lng });
-            mapInstanceRef.current?.setZoom(15);
-            
-            if (markerRef.current) {
-              markerRef.current.setPosition({ lat, lng });
+        if (autocompleteRef.current) {
+          autocompleteRef.current.addListener("place_changed", () => {
+            const place = autocompleteRef.current?.getPlace();
+            if (place && place.geometry && place.geometry.location) {
+              const lat = place.geometry.location.lat();
+              const lng = place.geometry.location.lng();
+              const address = place.formatted_address || "";
+              
+              if (mapInstanceRef.current) {
+                mapInstanceRef.current.setCenter({ lat, lng });
+                mapInstanceRef.current.setZoom(15);
+              }
+              
+              if (markerRef.current) {
+                markerRef.current.setPosition({ lat, lng });
+              }
+              
+              onSelectLocation(address, lat, lng);
             }
-            
-            onSelectLocation(address, lat, lng);
-          }
-        });
+          });
+        }
       }
     } catch (err) {
       console.error("Error initializing map:", err);
@@ -225,8 +233,10 @@ const GoogleMapPicker: React.FC<GoogleMapPickerProps> = ({
       if (status === "OK" && results[0]) {
         const location = results[0].geometry.location;
         
-        mapInstanceRef.current?.setCenter(location);
-        mapInstanceRef.current?.setZoom(15);
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.setCenter(location);
+          mapInstanceRef.current.setZoom(15);
+        }
         
         if (markerRef.current) {
           markerRef.current.setPosition(location);

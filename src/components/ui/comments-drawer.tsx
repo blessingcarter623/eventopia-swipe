@@ -2,34 +2,29 @@
 import React, { useState } from "react";
 import { X, Send } from "lucide-react";
 import { Comment as CommentComponent } from "./comment";
-import { Comment } from "@/types";
 import { cn } from "@/lib/utils";
+import { useComments } from "@/hooks/useComments";
+import { useAuth } from "@/context/AuthContext";
 
 interface CommentsDrawerProps {
   eventId: string;
-  comments: Comment[];
   isOpen: boolean;
   onClose: () => void;
-  onAddComment: (eventId: string, content: string) => void;
-  onLikeComment: (commentId: string) => void;
-  onReplyComment: (commentId: string, content: string) => void;
 }
 
 export function CommentsDrawer({
   eventId,
-  comments,
   isOpen,
   onClose,
-  onAddComment,
-  onLikeComment,
-  onReplyComment,
 }: CommentsDrawerProps) {
   const [newComment, setNewComment] = useState("");
+  const { comments, isLoading, addComment, likeComment, replyToComment } = useComments(eventId);
+  const { user } = useAuth();
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (newComment.trim()) {
-      onAddComment(eventId, newComment);
+      addComment(newComment);
       setNewComment("");
     }
   };
@@ -55,13 +50,17 @@ export function CommentsDrawer({
         </div>
         
         <div className="overflow-y-auto flex-1 p-4 scrollbar-none">
-          {comments.length > 0 ? (
+          {isLoading ? (
+            <div className="flex justify-center items-center h-40">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-neon-yellow"></div>
+            </div>
+          ) : comments.length > 0 ? (
             comments.map((comment) => (
               <CommentComponent
                 key={comment.id}
                 comment={comment}
-                onLike={onLikeComment}
-                onReply={onReplyComment}
+                onLike={likeComment}
+                onReply={replyToComment}
               />
             ))
           ) : (
@@ -76,13 +75,14 @@ export function CommentsDrawer({
             type="text"
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Add a comment..."
+            placeholder={user ? "Add a comment..." : "Sign in to comment"}
             className="flex-1 bg-darkbg rounded-full px-4 py-3 text-white border border-white/10 focus:outline-none focus:border-neon-yellow"
+            disabled={!user}
           />
           <button 
             type="submit"
             className="bg-neon-yellow text-black rounded-full w-12 h-12 flex items-center justify-center"
-            disabled={!newComment.trim()}
+            disabled={!newComment.trim() || !user}
           >
             <Send className="w-5 h-5" />
           </button>

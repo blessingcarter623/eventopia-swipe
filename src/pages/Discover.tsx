@@ -1,29 +1,96 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { NavigationBar } from "@/components/ui/navigation-bar";
-import { mockEvents } from "@/data/index";
-import { Search, Calendar, MapPin, Filter } from "lucide-react";
+import { Search, Calendar, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Event } from "@/types";
+import { useQuery } from "@tanstack/react-query";
 
 const categories = [
   "All", "Music", "Art", "Business", "Wellness", "Film", "Food", "Sports", "Technology"
 ];
 
+const fetchEvents = async (): Promise<Event[]> => {
+  const { data: events, error } = await supabase
+    .from('events')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  if (error) {
+    console.error("Error fetching events:", error);
+    throw error;
+  }
+
+  // Then fetch organizer profiles for the events
+  const eventIds = events.map(event => event.organizer_id);
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('*')
+    .in('id', eventIds);
+
+  if (profilesError) {
+    console.error("Error fetching profiles:", profilesError);
+    throw profilesError;
+  }
+
+  // Create a map of profiles for easy lookup
+  const profileMap = new Map(profiles.map(profile => [profile.id, profile]));
+  
+  // Transform the data to match the Event type
+  return events.map(event => {
+    const organizer = profileMap.get(event.organizer_id);
+    return {
+      id: event.id,
+      title: event.title,
+      description: event.description || '',
+      media: {
+        type: event.media_type as 'image' | 'video',
+        url: event.media_url || '',
+        thumbnail: event.thumbnail_url || '',
+      },
+      location: event.location || '',
+      date: event.date ? new Date(event.date).toISOString() : new Date().toISOString(),
+      time: event.time || '',
+      price: typeof event.price === 'number' ? event.price : 'Free',
+      category: event.category || '',
+      organizer: {
+        id: organizer?.id || event.organizer_id,
+        name: organizer?.display_name || 'Event Organizer',
+        avatar: organizer?.avatar_url || `https://i.pravatar.cc/150?u=${event.organizer_id}`,
+        isVerified: organizer?.is_verified || false,
+      },
+      stats: {
+        likes: Math.floor(Math.random() * 1000),
+        comments: Math.floor(Math.random() * 100),
+        shares: Math.floor(Math.random() * 500),
+        views: Math.floor(Math.random() * 10000),
+      },
+      tags: event.tags || [],
+      isSaved: false,
+    };
+  });
+};
+
 const Discover = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [filteredEvents, setFilteredEvents] = useState(mockEvents);
   
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    
-    if (query.trim() === "" && selectedCategory === "All") {
-      setFilteredEvents(mockEvents);
-      return;
+  const { data: allEvents = [], isLoading, isError } = useQuery({
+    queryKey: ['discover-events'],
+    queryFn: fetchEvents,
+  });
+  
+  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
+  
+  useEffect(() => {
+    if (allEvents.length > 0) {
+      filterEvents(searchQuery, selectedCategory);
     }
-    
-    let filtered = mockEvents;
+  }, [allEvents, searchQuery, selectedCategory]);
+  
+  const filterEvents = (query: string, category: string) => {
+    let filtered = allEvents;
     
     // Filter by search query
     if (query.trim() !== "") {
@@ -35,39 +102,46 @@ const Discover = () => {
     }
     
     // Filter by category
-    if (selectedCategory !== "All") {
-      filtered = filtered.filter(event => event.category === selectedCategory);
+    if (category !== "All") {
+      filtered = filtered.filter(event => event.category === category);
     }
     
     setFilteredEvents(filtered);
   };
   
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+  };
+  
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
-    
-    if (category === "All" && searchQuery.trim() === "") {
-      setFilteredEvents(mockEvents);
-      return;
-    }
-    
-    let filtered = mockEvents;
-    
-    // Filter by category
-    if (category !== "All") {
-      filtered = filtered.filter(event => event.category === category);
-    }
-    
-    // Filter by search query
-    if (searchQuery.trim() !== "") {
-      filtered = filtered.filter(event => 
-        event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        event.location.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    
-    setFilteredEvents(filtered);
   };
+  
+  if (isLoading) {
+    return (
+      <div className="app-height bg-darkbg flex flex-col">
+        <div className="flex-1 items-center justify-center flex">
+          <div className="text-neon-yellow text-xl animate-pulse">Loading events...</div>
+        </div>
+        <NavigationBar />
+      </div>
+    );
+  }
+  
+  if (isError) {
+    return (
+      <div className="app-height bg-darkbg flex flex-col">
+        <div className="flex-1 items-center justify-center flex p-4">
+          <div className="text-neon-yellow text-xl mb-4">Error loading events</div>
+          <p className="text-white text-center">
+            There was an error loading events. Please try again later.
+          </p>
+        </div>
+        <NavigationBar />
+      </div>
+    );
+  }
   
   return (
     <div className="app-height bg-darkbg flex flex-col">

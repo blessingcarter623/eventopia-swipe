@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect } from "react";
 import { NavigationBar } from "@/components/ui/navigation-bar";
-import { mockEvents } from "@/data/index";
 import { ArrowLeft, Settings, Share2, LogOut, LayoutDashboard } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { Event } from "@/types";
 
 const Profile = () => {
   const { profile, signOut, user } = useAuth();
@@ -13,10 +15,56 @@ const Profile = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  // Filter events by the current user
-  const userEvents = profile 
-    ? mockEvents.filter(event => event.organizer.name === profile.display_name || event.organizer.id === user?.id)
-    : [];
+  // Fetch user's events from Supabase
+  const { data: userEvents = [], isLoading: isLoadingEvents } = useQuery({
+    queryKey: ['user-events', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      // Get events where the user is the organizer
+      const { data: events, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('organizer_id', user.id);
+      
+      if (error) {
+        console.error("Error fetching user events:", error);
+        throw error;
+      }
+      
+      // Transform the data to match the Event type
+      return events.map(event => ({
+        id: event.id,
+        title: event.title,
+        description: event.description || '',
+        media: {
+          type: event.media_type as 'image' | 'video',
+          url: event.media_url || '',
+          thumbnail: event.thumbnail_url || '',
+        },
+        location: event.location || '',
+        date: event.date ? new Date(event.date).toISOString() : new Date().toISOString(),
+        time: event.time || '',
+        price: typeof event.price === 'number' ? event.price : 'Free',
+        category: event.category || '',
+        organizer: {
+          id: profile?.id || '',
+          name: profile?.display_name || 'Event Organizer',
+          avatar: profile?.avatar_url || '',
+          isVerified: profile?.is_verified || false,
+        },
+        stats: {
+          likes: Math.floor(Math.random() * 1000),
+          comments: Math.floor(Math.random() * 100),
+          shares: Math.floor(Math.random() * 500),
+          views: Math.floor(Math.random() * 10000),
+        },
+        tags: event.tags || [],
+        isSaved: false,
+      }));
+    },
+    enabled: !!user,
+  });
   
   const handleSignOut = async () => {
     await signOut();
@@ -144,9 +192,14 @@ const Profile = () => {
           {/* Tab Content */}
           <div className="p-2">
             {activeTab === "events" && (
-              userEvents.length > 0 ? (
+              isLoadingEvents ? (
+                <div className="text-center py-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-neon-yellow mx-auto"></div>
+                  <p className="text-gray-400 mt-2">Loading events...</p>
+                </div>
+              ) : userEvents.length > 0 ? (
                 <div className="grid grid-cols-2 gap-2">
-                  {userEvents.map(event => (
+                  {userEvents.map((event: Event) => (
                     <Link to={`/event/${event.id}`} key={event.id} className="relative aspect-square rounded-xl overflow-hidden">
                       <img 
                         src={event.media.url} 

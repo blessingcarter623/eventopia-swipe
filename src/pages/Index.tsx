@@ -1,13 +1,14 @@
+
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { EventCard } from "@/components/ui/event-card";
 import { CommentsDrawer } from "@/components/ui/comments-drawer";
 import { NavigationBar } from "@/components/ui/navigation-bar";
-import { mockComments } from "@/data/index";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Event } from "@/types";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/context/AuthContext";
 
 const fetchEvents = async (): Promise<Event[]> => {
   // First fetch events
@@ -74,9 +75,9 @@ const fetchEvents = async (): Promise<Event[]> => {
 const Index = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState(mockComments);
   const [followedOrganizers, setFollowedOrganizers] = useState<string[]>([]);
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const { data: events = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['events'],
@@ -209,13 +210,35 @@ const Index = () => {
   }, [handleSwipe]);
   
   const handleLike = async (eventId: string) => {
+    if (!user) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to like events",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     toast({
       title: "Liked!",
       description: "You liked this event",
     });
+    
+    // In a real app, you would update Supabase here
+    // For example:
+    // await supabase.from('event_likes').insert({ user_id: user.id, event_id: eventId });
   };
   
   const handleFollow = (organizerId: string) => {
+    if (!user) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to follow organizers",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (followedOrganizers.includes(organizerId)) {
       setFollowedOrganizers(prev => prev.filter(id => id !== organizerId));
       toast({
@@ -229,9 +252,25 @@ const Index = () => {
         description: "You are now following this organizer",
       });
     }
+    
+    // In a real app, you would update Supabase here
+    // For example:
+    // if (followedOrganizers.includes(organizerId)) {
+    //   await supabase.from('follows').delete().eq('user_id', user.id).eq('organizer_id', organizerId);
+    // } else {
+    //   await supabase.from('follows').insert({ user_id: user.id, organizer_id: organizerId });
+    // }
   };
   
   const handleComment = (eventId: string) => {
+    if (!user) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to comment",
+        variant: "destructive"
+      });
+      return;
+    }
     setShowComments(true);
   };
   
@@ -240,84 +279,30 @@ const Index = () => {
       title: "Shared!",
       description: "Event shared with your followers",
     });
+    
+    // In a real app, you would update Supabase here
+    // For example:
+    // await supabase.from('shares').insert({ user_id: user.id, event_id: eventId });
   };
   
   const handleBookmark = (eventId: string) => {
+    if (!user) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to save events",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     toast({
       title: "Saved!",
       description: "Event added to your saved collection",
     });
-  };
-  
-  const handleAddComment = (eventId: string, content: string) => {
-    const newComment = {
-      id: `new-${Date.now()}`,
-      userId: "5",
-      username: "festivalgoer",
-      avatar: "https://i.pravatar.cc/150?img=5",
-      content,
-      timestamp: new Date().toISOString(),
-      likes: 0,
-    };
     
-    setComments(prev => [newComment, ...prev]);
-    
-    toast({
-      title: "Comment Added",
-      description: "Your comment has been added successfully",
-    });
-  };
-  
-  const handleLikeComment = (commentId: string) => {
-    // In a real app, this would call an API
-    console.log(`Liked comment ${commentId}`);
-    toast({
-      title: "Liked comment",
-      description: "You liked this comment",
-    });
-  };
-  
-  const handleReplyComment = (commentId: string, content: string) => {
-    setComments(prev => 
-      prev.map(comment => {
-        if (comment.id === commentId) {
-          const newReply = {
-            id: `reply-${Date.now()}`,
-            userId: "5", // In a real app, this would be the current user's ID
-            username: "festivalgoer",
-            avatar: "https://i.pravatar.cc/150?img=5",
-            content,
-            timestamp: new Date().toISOString(),
-            likes: 0,
-          };
-          
-          return {
-            ...comment,
-            replies: [...(comment.replies || []), newReply],
-          };
-        } else if (comment.replies) {
-          const foundInReplies = comment.replies.some(reply => reply.id === commentId);
-          if (foundInReplies) {
-            const newReply = {
-              id: `reply-${Date.now()}`,
-              userId: "5", // In a real app, this would be the current user's ID
-              username: "festivalgoer",
-              avatar: "https://i.pravatar.cc/150?img=5",
-              content,
-              timestamp: new Date().toISOString(),
-              likes: 0,
-            };
-            
-            return {
-              ...comment,
-              replies: [...comment.replies, newReply],
-            };
-          }
-        }
-        
-        return comment;
-      })
-    );
+    // In a real app, you would update Supabase here
+    // For example:
+    // await supabase.from('saved_events').insert({ user_id: user.id, event_id: eventId });
   };
   
   if (isLoading) {
@@ -410,12 +395,8 @@ const Index = () => {
       {/* Comments Drawer */}
       <CommentsDrawer
         eventId={events[currentIndex]?.id || ""}
-        comments={comments}
         isOpen={showComments}
         onClose={() => setShowComments(false)}
-        onAddComment={handleAddComment}
-        onLikeComment={handleLikeComment}
-        onReplyComment={handleReplyComment}
       />
       
       {/* Bottom Navigation */}

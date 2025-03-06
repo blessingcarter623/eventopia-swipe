@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
+
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { EventCard } from "@/components/ui/event-card";
 import { CommentsDrawer } from "@/components/ui/comments-drawer";
 import { NavigationBar } from "@/components/ui/navigation-bar";
@@ -11,15 +12,62 @@ const Index = () => {
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState(mockComments);
   const [events, setEvents] = useState(mockEvents);
+  const [followedOrganizers, setFollowedOrganizers] = useState<string[]>([]);
   const { toast } = useToast();
   
   const containerRef = useRef<HTMLDivElement>(null);
   const startY = useRef<number | null>(null);
   const isSwiping = useRef(false);
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   
-  const handleSwipe = (direction: "up" | "down") => {
+  // Initialize video refs based on events length
+  useEffect(() => {
+    videoRefs.current = Array(events.length).fill(null);
+  }, [events.length]);
+  
+  // Preload videos for faster rendering
+  useEffect(() => {
+    const preloadNextVideo = (index: number) => {
+      if (index < events.length - 1 && events[index + 1].media.type === "video") {
+        const nextVideo = videoRefs.current[index + 1];
+        if (nextVideo) {
+          nextVideo.load();
+        }
+      }
+    };
+    
+    // Preload current and next videos
+    if (events[currentIndex]?.media.type === "video") {
+      const currentVideo = videoRefs.current[currentIndex];
+      if (currentVideo) {
+        currentVideo.load();
+        currentVideo.play().catch(err => console.log("Video autoplay prevented:", err));
+      }
+    }
+    
+    // Preload next video for faster transition
+    preloadNextVideo(currentIndex);
+    
+    // Preload previous video if available
+    if (currentIndex > 0 && events[currentIndex - 1].media.type === "video") {
+      const prevVideo = videoRefs.current[currentIndex - 1];
+      if (prevVideo) {
+        prevVideo.load();
+      }
+    }
+  }, [currentIndex, events]);
+  
+  const handleSwipe = useCallback((direction: "up" | "down") => {
     if (isSwiping.current) return;
     isSwiping.current = true;
+    
+    // Pause the current video
+    if (events[currentIndex]?.media.type === "video") {
+      const currentVideo = videoRefs.current[currentIndex];
+      if (currentVideo) {
+        currentVideo.pause();
+      }
+    }
     
     if (direction === "up" && currentIndex < events.length - 1) {
       setCurrentIndex(prevIndex => prevIndex + 1);
@@ -27,11 +75,17 @@ const Index = () => {
       setCurrentIndex(prevIndex => prevIndex - 1);
     }
     
-    // Reset swiping flag after animation
+    // Reset swiping flag after animation and play the new video
     setTimeout(() => {
       isSwiping.current = false;
+      if (events[currentIndex]?.media.type === "video") {
+        const newVideo = videoRefs.current[currentIndex];
+        if (newVideo) {
+          newVideo.play().catch(err => console.log("Video autoplay prevented:", err));
+        }
+      }
     }, 300);
-  };
+  }, [currentIndex, events]);
   
   const handleTouchStart = (e: React.TouchEvent) => {
     startY.current = e.touches[0].clientY;
@@ -43,8 +97,8 @@ const Index = () => {
     const currentY = e.touches[0].clientY;
     const diff = startY.current - currentY;
     
-    // Only trigger swipe if movement is significant (more than 50px)
-    if (Math.abs(diff) > 50) {
+    // Only trigger swipe if movement is significant (more than 30px for faster response)
+    if (Math.abs(diff) > 30) {
       if (diff > 0) {
         handleSwipe("up");
       } else {
@@ -58,21 +112,25 @@ const Index = () => {
     startY.current = null;
   };
   
-  // Add wheel event support for desktop
+  // Add wheel event support for desktop with smooth snap scrolling
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
       if (isSwiping.current) return;
       
-      if (e.deltaY > 0) {
-        handleSwipe("up");
-      } else if (e.deltaY < 0) {
-        handleSwipe("down");
+      // Use a threshold to make the snap scroll more responsive
+      if (Math.abs(e.deltaY) > 30) {
+        if (e.deltaY > 0) {
+          handleSwipe("up");
+        } else if (e.deltaY < 0) {
+          handleSwipe("down");
+        }
       }
     };
     
     const container = containerRef.current;
     if (container) {
-      container.addEventListener("wheel", handleWheel);
+      container.addEventListener("wheel", handleWheel, { passive: false });
     }
     
     return () => {
@@ -80,14 +138,36 @@ const Index = () => {
         container.removeEventListener("wheel", handleWheel);
       }
     };
-  }, [currentIndex, events.length]);
+  }, [handleSwipe]);
   
   const handleLike = (eventId: string) => {
-    // In a real app, this would call an API
+    // Update the UI to reflect the like status
+    setEvents(events.map(event => 
+      event.id === eventId 
+        ? { ...event, stats: { ...event.stats, likes: event.stats.likes + 1 } } 
+        : event
+    ));
+    
     toast({
       title: "Liked!",
       description: "You liked this event",
     });
+  };
+  
+  const handleFollow = (organizerId: string) => {
+    if (followedOrganizers.includes(organizerId)) {
+      setFollowedOrganizers(prev => prev.filter(id => id !== organizerId));
+      toast({
+        title: "Unfollowed!",
+        description: "You unfollowed this organizer",
+      });
+    } else {
+      setFollowedOrganizers(prev => [...prev, organizerId]);
+      toast({
+        title: "Following!",
+        description: "You are now following this organizer",
+      });
+    }
   };
   
   const handleComment = (eventId: string) => {
@@ -95,6 +175,13 @@ const Index = () => {
   };
   
   const handleShare = (eventId: string) => {
+    // Update the UI to reflect the share count
+    setEvents(events.map(event => 
+      event.id === eventId 
+        ? { ...event, stats: { ...event.stats, shares: event.stats.shares + 1 } } 
+        : event
+    ));
+    
     toast({
       title: "Shared!",
       description: "Event shared with your followers",
@@ -102,6 +189,13 @@ const Index = () => {
   };
   
   const handleBookmark = (eventId: string) => {
+    // Update the isSaved status for this event
+    setEvents(events.map(event => 
+      event.id === eventId 
+        ? { ...event, isSaved: !event.isSaved } 
+        : event
+    ));
+    
     toast({
       title: "Saved!",
       description: "Event added to your saved collection",
@@ -197,24 +291,12 @@ const Index = () => {
     );
   };
   
-  const handleNext = () => {
-    if (currentIndex < events.length - 1) {
-      setCurrentIndex(prevIndex => prevIndex + 1);
-    }
-  };
-  
-  const handlePrev = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(prevIndex => prevIndex - 1);
-    }
-  };
-  
   return (
     <div className="app-height bg-darkbg flex flex-col">
       {/* App Wrapper */}
       <div 
         ref={containerRef}
-        className="flex-1 overflow-hidden relative"
+        className="flex-1 overflow-hidden relative snap-y snap-mandatory"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -222,16 +304,25 @@ const Index = () => {
         {/* Event Cards */}
         <div className="h-full w-full">
           {events.map((event, index) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              isActive={index === currentIndex}
-              onLike={handleLike}
-              onComment={handleComment}
-              onShare={handleShare}
-              onBookmark={handleBookmark}
-              showComments={() => setShowComments(true)}
-            />
+            <div 
+              key={event.id} 
+              className="h-full w-full snap-start snap-always"
+            >
+              <EventCard
+                event={event}
+                isActive={index === currentIndex}
+                onLike={handleLike}
+                onComment={handleComment}
+                onShare={handleShare}
+                onBookmark={handleBookmark}
+                showComments={() => setShowComments(true)}
+                videoRef={event.media.type === "video" ? (el) => {
+                  videoRefs.current[index] = el;
+                } : undefined}
+                isFollowed={followedOrganizers.includes(event.organizer.id)}
+                onFollow={() => handleFollow(event.organizer.id)}
+              />
+            </div>
           ))}
         </div>
         
@@ -274,64 +365,8 @@ const Index = () => {
         isOpen={showComments}
         onClose={() => setShowComments(false)}
         onAddComment={handleAddComment}
-        onLikeComment={(commentId) => {
-          console.log(`Liked comment ${commentId}`);
-          toast({
-            title: "Liked comment",
-            description: "You liked this comment",
-          });
-        }}
-        onReplyComment={(commentId, content) => {
-          setComments(prev => 
-            prev.map(comment => {
-              if (comment.id === commentId) {
-                const newReply = {
-                  id: `reply-${Date.now()}`,
-                  userId: "5", // In a real app, this would be the current user's ID
-                  username: "festivalgoer",
-                  avatar: "https://i.pravatar.cc/150?img=5",
-                  content,
-                  timestamp: new Date().toISOString(),
-                  likes: 0,
-                };
-                
-                return {
-                  ...comment,
-                  replies: [...(comment.replies || []), newReply],
-                };
-              } else if (comment.replies) {
-                const foundInReplies = comment.replies.some(reply => reply.id === commentId);
-                if (foundInReplies) {
-                  const newReply = {
-                    id: `reply-${Date.now()}`,
-                    userId: "5", // In a real app, this would be the current user's ID
-                    username: "festivalgoer",
-                    avatar: "https://i.pravatar.cc/150?img=5",
-                    content,
-                    timestamp: new Date().toISOString(),
-                    likes: 0,
-                  };
-                  
-                  return {
-                    ...comment,
-                    replies: [...comment.replies, newReply],
-                  };
-                }
-              }
-              
-              return comment;
-            })
-          );
-          
-          // Update event comment count
-          setEvents(prev => 
-            prev.map(event => 
-              event.id === events[currentIndex].id 
-                ? { ...event, stats: { ...event.stats, comments: event.stats.comments + 1 } } 
-                : event
-            )
-          );
-        }}
+        onLikeComment={handleLikeComment}
+        onReplyComment={handleReplyComment}
       />
       
       {/* Bottom Navigation */}

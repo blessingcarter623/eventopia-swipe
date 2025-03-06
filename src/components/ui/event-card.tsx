@@ -1,9 +1,10 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Event } from "@/types";
-import { Heart, MessageCircle, Share2, Bookmark, Calendar, MapPin } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, Calendar, MapPin, UserPlus, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { Button } from "./button";
 
 interface EventCardProps {
   event: Event;
@@ -13,6 +14,9 @@ interface EventCardProps {
   onShare: (eventId: string) => void;
   onBookmark: (eventId: string) => void;
   showComments: () => void;
+  videoRef?: (el: HTMLVideoElement | null) => void;
+  isFollowed?: boolean;
+  onFollow: () => void;
 }
 
 export function EventCard({
@@ -23,19 +27,25 @@ export function EventCard({
   onShare,
   onBookmark,
   showComments,
+  videoRef,
+  isFollowed = false,
+  onFollow,
 }: EventCardProps) {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(event.isSaved || false);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
 
   // Handle video playback based on card visibility
   useEffect(() => {
-    if (!videoRef.current) return;
+    const videoElement = localVideoRef.current;
+    if (!videoElement) return;
     
     if (isActive && event.media.type === "video") {
-      videoRef.current.play().catch(err => console.log("Video autoplay prevented:", err));
-    } else if (videoRef.current) {
-      videoRef.current.pause();
+      videoElement.muted = true; // Ensure it can autoplay
+      videoElement.currentTime = 0; // Start from beginning
+      videoElement.play().catch(err => console.log("Video autoplay prevented:", err));
+    } else if (videoElement) {
+      videoElement.pause();
     }
   }, [isActive, event.media.type]);
 
@@ -66,13 +76,17 @@ export function EventCard({
           />
         ) : (
           <video 
-            ref={videoRef}
+            ref={(el) => {
+              localVideoRef.current = el;
+              if (videoRef) videoRef(el);
+            }}
             src={event.media.url} 
             poster={event.media.thumbnail} 
             className="w-full h-full object-cover"
             muted
             playsInline
             loop
+            preload="auto"
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/70" />
@@ -96,8 +110,26 @@ export function EventCard({
             <p className="text-gray-300 text-xs">{formatDistanceToNow(new Date(event.date), { addSuffix: true })}</p>
           </div>
         </div>
-        <button className="bg-neon-yellow text-black font-medium px-4 py-1 rounded-full text-sm hover:brightness-110 transition-all">
-          Follow
+        <button 
+          className={cn(
+            "flex items-center gap-1 font-medium px-4 py-1 rounded-full text-sm transition-all",
+            isFollowed 
+              ? "bg-white/20 text-white hover:bg-white/30" 
+              : "bg-neon-yellow text-black hover:brightness-110"
+          )}
+          onClick={onFollow}
+        >
+          {isFollowed ? (
+            <>
+              <UserCheck className="w-4 h-4" />
+              Following
+            </>
+          ) : (
+            <>
+              <UserPlus className="w-4 h-4" />
+              Follow
+            </>
+          )}
         </button>
       </div>
       
@@ -130,9 +162,9 @@ export function EventCard({
             <div className="text-neon-yellow font-bold">
               {typeof event.price === 'number' ? `$${event.price.toFixed(2)}` : event.price}
             </div>
-            <button className="bg-neon-yellow text-black font-bold px-6 py-2 rounded-full hover:brightness-110 transition-all">
+            <Button className="bg-neon-yellow hover:bg-neon-yellow/90 text-black font-bold px-6 py-2 rounded-full">
               Get Tickets
-            </button>
+            </Button>
           </div>
         </div>
         
@@ -141,6 +173,7 @@ export function EventCard({
           <button 
             className="flex flex-col items-center" 
             onClick={handleLike}
+            aria-label="Like event"
           >
             <Heart className={cn("w-6 h-6", liked ? "fill-neon-red text-neon-red" : "text-white")} />
             <span className="text-xs text-gray-300 mt-1">{liked ? event.stats.likes + 1 : event.stats.likes}</span>
@@ -149,6 +182,7 @@ export function EventCard({
           <button 
             className="flex flex-col items-center"
             onClick={showComments}
+            aria-label="Show comments"
           >
             <MessageCircle className="w-6 h-6 text-white" />
             <span className="text-xs text-gray-300 mt-1">{event.stats.comments}</span>
@@ -157,6 +191,7 @@ export function EventCard({
           <button 
             className="flex flex-col items-center"
             onClick={() => onShare(event.id)}
+            aria-label="Share event"
           >
             <Share2 className="w-6 h-6 text-white" />
             <span className="text-xs text-gray-300 mt-1">{event.stats.shares}</span>
@@ -165,6 +200,7 @@ export function EventCard({
           <button 
             className="flex flex-col items-center"
             onClick={handleSave}
+            aria-label="Save event"
           >
             <Bookmark className={cn("w-6 h-6", saved ? "fill-neon-yellow text-neon-yellow" : "text-white")} />
             <span className="text-xs text-gray-300 mt-1">Save</span>

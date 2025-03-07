@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
       )
     }
     
-    // Initialize Paystack payment
+    // Initialize Paystack payment with currency set to ZAR (South African Rand)
     const response = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
       headers: {
@@ -106,6 +106,7 @@ Deno.serve(async (req) => {
         amount: amount * 100, // Convert to kobo/cents
         email,
         callback_url: callbackUrl,
+        currency: 'ZAR', // Set currency to South African Rand
         metadata: {
           ...metadata,
           userId,

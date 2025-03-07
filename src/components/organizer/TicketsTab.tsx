@@ -441,7 +441,7 @@ const TicketsTab = () => {
                         <div className="flex justify-between items-center">
                           <div className="text-neon-yellow font-bold">
                             <DollarSign className="w-4 h-4 inline" />
-                            {ticket.price.toFixed(2)}
+                            R {ticket.price.toFixed(2)}
                           </div>
                           <Button
                             size="sm"

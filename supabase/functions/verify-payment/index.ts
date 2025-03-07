@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     if (!reference) {
       return new Response(
         JSON.stringify({ error: 'Missing payment reference' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
     
@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
       console.error('Paystack secret key not found')
       return new Response(
         JSON.stringify({ error: 'Payment provider configuration missing' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
     
@@ -50,8 +50,8 @@ Deno.serve(async (req) => {
     if (!data.status) {
       console.error('Paystack verification error:', data)
       return new Response(
-        JSON.stringify({ error: data.message || 'Payment verification failed' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: data.message || 'Payment verification failed', success: false }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
     
@@ -100,8 +100,8 @@ Deno.serve(async (req) => {
       if (ticketTypeError) {
         console.error('Error fetching ticket type:', ticketTypeError)
         return new Response(
-          JSON.stringify({ error: 'Ticket type no longer available' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: 'Ticket type no longer available', success: false }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
       
@@ -134,8 +134,8 @@ Deno.serve(async (req) => {
       if (ticketError) {
         console.error('Error creating ticket:', ticketError)
         return new Response(
-          JSON.stringify({ error: ticketError.message }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: ticketError.message, success: false }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
       
@@ -208,8 +208,8 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Verify payment error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: error.message, success: false }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })

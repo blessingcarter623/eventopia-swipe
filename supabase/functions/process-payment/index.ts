@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
       // Increment the sold count for the ticket type
       await supabase
         .from('ticket_types')
-        .update({ sold: supabase.rpc('increment', { inc: 1 }) })
+        .update({ sold: ticketTypeData.sold + 1 })
         .eq('id', ticketTypeId)
       
       // Create transaction record
@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
       )
     }
     
-    // For paid tickets, initialize Paystack payment
+    // For paid tickets, initialize payment
     const PAYSTACK_SECRET = Deno.env.get('PAYSTACK_SECRET_KEY')
     
     if (!PAYSTACK_SECRET) {
@@ -138,9 +138,9 @@ Deno.serve(async (req) => {
       )
     }
     
-    console.log('Initializing Paystack payment')
+    console.log('Initializing payment')
     
-    // Initialize Paystack payment with currency set to ZAR (South African Rand)
+    // Initialize payment with currency set to ZAR (South African Rand)
     const paystackPayload = {
       amount: Math.round(amount * 100), // Convert to lowest currency unit (cents)
       email,
@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
       }
     }
     
-    console.log('Paystack payload:', paystackPayload)
+    console.log('Payment payload:', paystackPayload)
     
     const response = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
@@ -167,13 +167,13 @@ Deno.serve(async (req) => {
     
     const data = await response.json()
     
-    console.log('Paystack response:', data)
+    console.log('Payment response:', data)
     
     if (!data.status) {
-      console.error('Paystack error:', data)
+      console.error('Payment error:', data)
       return new Response(
         JSON.stringify({ error: data.message || 'Payment initialization failed' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
     
@@ -186,7 +186,7 @@ Deno.serve(async (req) => {
     console.error('Process payment error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })

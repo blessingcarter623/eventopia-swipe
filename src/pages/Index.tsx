@@ -116,7 +116,7 @@ const Index = () => {
     if (currentIndex > 0 && events[currentIndex - 1].media.type === "video") {
       const prevVideo = videoRefs.current[currentIndex - 1];
       if (prevVideo) {
-        prevVideo.load();
+        prevVideo.pause();
       }
     }
   }, [currentIndex, events]);

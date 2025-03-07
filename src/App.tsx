@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import Index from "./pages/Index";
-import Discover from "./pages/Discover";
 import Profile from "./pages/Profile";
 import ProfileEdit from "./pages/ProfileEdit";
 import Tickets from "./pages/Tickets";
@@ -18,9 +17,7 @@ import OrganizerDashboard from "./pages/OrganizerDashboard";
 import CreateEventPage from "./pages/CreateEventPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import EditEventPage from "@/pages/EditEventPage";
-import LivestreamsList from "./pages/LivestreamsList";
-import LivestreamPage from "./pages/LivestreamPage";
-import CreateLivestream from "./pages/CreateLivestream";
+import UserDetails from "./pages/UserDetails";
 
 const queryClient = new QueryClient();
 
@@ -34,7 +31,6 @@ function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/discover" element={<Discover />} />
               <Route path="/profile" element={
                 <ProtectedRoute>
                   <Profile />
@@ -82,13 +78,7 @@ function App() {
                   <Navigate to="/organizer/dashboard?tab=tickets" replace />
                 </ProtectedRoute>
               } />
-              <Route path="/livestreams" element={<LivestreamsList />} />
-              <Route path="/livestream/:livestreamId" element={<LivestreamPage />} />
-              <Route path="/create-livestream" element={
-                <ProtectedRoute requiredRole="organizer">
-                  <CreateLivestream />
-                </ProtectedRoute>
-              } />
+              <Route path="/user/:userId" element={<UserDetails />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

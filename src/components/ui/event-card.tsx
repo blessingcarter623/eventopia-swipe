@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Event } from "@/types";
 import { Heart, MessageCircle, Share2, Bookmark, Calendar, MapPin, UserPlus, UserCheck, ChevronDown, Music } from "lucide-react";
@@ -7,6 +8,9 @@ import { Button } from "./button";
 import { Badge } from "./badge";
 import { SoundWave } from "./sound-wave";
 import { TicketPurchaseDialog } from "./ticket-purchase-dialog";
+import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/AuthContext";
 
 interface EventCardProps {
   event: Event;
@@ -37,10 +41,13 @@ export function EventCard({
   const [saved, setSaved] = useState(event.isSaved || false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [hasTicket, setHasTicket] = useState(false);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const descriptionRef = useRef<HTMLParagraphElement>(null);
   const [isDescriptionOverflowing, setIsDescriptionOverflowing] = useState(false);
   const [showTicketDialog, setShowTicketDialog] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useAuth();
   
   // Check if description is overflowing
   useEffect(() => {
@@ -50,6 +57,28 @@ export function EventCard({
       );
     }
   }, [event.description]);
+
+  // Check if user has ticket for this event
+  useEffect(() => {
+    if (user && event.id) {
+      const checkUserTicket = async () => {
+        const { data, error } = await supabase
+          .from('tickets')
+          .select('id')
+          .eq('event_id', event.id)
+          .eq('user_id', user.id)
+          .limit(1);
+          
+        if (!error && data && data.length > 0) {
+          setHasTicket(true);
+        } else {
+          setHasTicket(false);
+        }
+      };
+      
+      checkUserTicket();
+    }
+  }, [user, event.id]);
 
   // Handle video playback based on card visibility
   useEffect(() => {
@@ -92,6 +121,10 @@ export function EventCard({
     setSaved(!saved);
     onBookmark(event.id);
   };
+  
+  const navigateToUserProfile = () => {
+    navigate(`/user/${event.organizer.id}`);
+  };
 
   return (
     <div 
@@ -128,7 +161,10 @@ export function EventCard({
       
       {/* Top Bar with User Info */}
       <div className="flex justify-between items-center p-4 z-10 pt-10">
-        <div className="flex items-center">
+        <div 
+          className="flex items-center cursor-pointer" 
+          onClick={navigateToUserProfile}
+        >
           <div className="relative">
             <img 
               src={event.organizer.avatar} 
@@ -275,13 +311,19 @@ export function EventCard({
         
         <div className="flex justify-between items-center">
           <div className="text-neon-yellow font-bold text-xl">
-            {typeof event.price === 'number' ? (event.price === 0 ? "Free" : `$${event.price.toFixed(2)}`) : event.price}
+            {typeof event.price === 'number' ? (event.price === 0 ? "Free" : `R ${event.price.toFixed(2)}`) : event.price}
           </div>
           <Button 
-            className="bg-neon-yellow hover:bg-neon-yellow/90 text-black font-bold px-6 py-2 rounded-full shadow-lg transition-transform duration-200 transform hover:scale-105"
-            onClick={() => setShowTicketDialog(true)}
+            className={cn(
+              "font-bold px-6 py-2 rounded-full shadow-lg transition-transform duration-200 transform hover:scale-105",
+              hasTicket 
+                ? "bg-green-500 hover:bg-green-600 text-white" 
+                : "bg-neon-yellow hover:bg-neon-yellow/90 text-black"
+            )}
+            onClick={() => !hasTicket && setShowTicketDialog(true)}
+            disabled={hasTicket}
           >
-            {typeof event.price === 'number' && event.price === 0 ? "RSVP" : "Get Tickets"}
+            {hasTicket ? "Ticket Purchased" : (typeof event.price === 'number' && event.price === 0 ? "RSVP" : "Get Tickets")}
           </Button>
         </div>
         

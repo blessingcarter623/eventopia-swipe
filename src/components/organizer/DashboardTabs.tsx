@@ -1,117 +1,116 @@
 
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Users, BarChart3, Video, Ticket } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import EventsTab from "./EventsTab";
-import AnalyticsTab from "./AnalyticsTab";
 import FollowersTab from "./FollowersTab";
+import AnalyticsTab from "./AnalyticsTab";
 import TicketsTab from "./TicketsTab";
-import { VideoCreationStudio } from "@/components/ui/video-creation-studio";
-import { Event, User } from "@/types";
-
-interface AnalyticsData {
-  totalTicketsSold: number;
-  totalRevenue: number;
-  averageAttendance: number;
-  popularEvents: {
-    name: string;
-    sales: number;
-    percentage: number;
-  }[];
-}
+import WalletTab from "./WalletTab";
 
 interface DashboardTabsProps {
   activeTab: string;
-  setActiveTab: (value: string) => void;
-  organizerEvents: Event[];
-  followers: User[];
-  analyticsData: AnalyticsData;
+  setActiveTab: (tab: string) => void;
+  organizerEvents: any[];
+  followers: any[];
+  analyticsData: any;
   isLoading: boolean;
   refreshEvents: () => void;
 }
 
-const DashboardTabs = ({
+const DashboardTabs: React.FC<DashboardTabsProps> = ({
   activeTab,
   setActiveTab,
   organizerEvents,
   followers,
   analyticsData,
   isLoading,
-  refreshEvents
-}: DashboardTabsProps) => {
+  refreshEvents,
+}) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  React.useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl && ['events', 'followers', 'analytics', 'tickets', 'wallet'].includes(tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams, setActiveTab]);
+  
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    searchParams.set('tab', value);
+    setSearchParams(searchParams);
+  };
+  
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid grid-cols-5 bg-darkbg-lighter border-b border-white/10">
+    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+      <TabsList className="grid grid-cols-5 bg-darkbg-lighter border border-gray-700 rounded-lg p-1 mx-4">
         <TabsTrigger 
           value="events" 
-          className="data-[state=active]:text-neon-yellow data-[state=active]:border-b-2 data-[state=active]:border-neon-yellow rounded-none bg-transparent py-3"
+          className="data-[state=active]:bg-neon-yellow data-[state=active]:text-black rounded-md"
         >
-          <Calendar className="w-4 h-4 mr-2" />
           Events
         </TabsTrigger>
         <TabsTrigger 
-          value="tickets" 
-          className="data-[state=active]:text-neon-yellow data-[state=active]:border-b-2 data-[state=active]:border-neon-yellow rounded-none bg-transparent py-3"
+          value="followers" 
+          className="data-[state=active]:bg-neon-yellow data-[state=active]:text-black rounded-md"
         >
-          <Ticket className="w-4 h-4 mr-2" />
-          Tickets
-        </TabsTrigger>
-        <TabsTrigger 
-          value="video" 
-          className="data-[state=active]:text-neon-yellow data-[state=active]:border-b-2 data-[state=active]:border-neon-yellow rounded-none bg-transparent py-3"
-        >
-          <Video className="w-4 h-4 mr-2" />
-          Studio
+          Followers
         </TabsTrigger>
         <TabsTrigger 
           value="analytics" 
-          className="data-[state=active]:text-neon-yellow data-[state=active]:border-b-2 data-[state=active]:border-neon-yellow rounded-none bg-transparent py-3"
+          className="data-[state=active]:bg-neon-yellow data-[state=active]:text-black rounded-md"
         >
-          <BarChart3 className="w-4 h-4 mr-2" />
           Analytics
         </TabsTrigger>
         <TabsTrigger 
-          value="followers" 
-          className="data-[state=active]:text-neon-yellow data-[state=active]:border-b-2 data-[state=active]:border-neon-yellow rounded-none bg-transparent py-3"
+          value="tickets" 
+          className="data-[state=active]:bg-neon-yellow data-[state=active]:text-black rounded-md"
         >
-          <Users className="w-4 h-4 mr-2" />
-          Followers
+          Tickets
+        </TabsTrigger>
+        <TabsTrigger 
+          value="wallet" 
+          className="data-[state=active]:bg-neon-yellow data-[state=active]:text-black rounded-md"
+        >
+          Wallet
         </TabsTrigger>
       </TabsList>
       
-      <TabsContent value="events">
-        <EventsTab 
-          events={organizerEvents}
-          isLoading={isLoading}
-          refreshEvents={refreshEvents}
-          averageTicketsSold={organizerEvents.length > 0 && analyticsData.totalTicketsSold > 0 
-            ? Math.floor(analyticsData.totalTicketsSold / organizerEvents.length) 
-            : 0}
-        />
-      </TabsContent>
-      
-      <TabsContent value="tickets">
-        <TicketsTab />
-      </TabsContent>
-      
-      <TabsContent value="video" className="p-0">
-        <VideoCreationStudio />
-      </TabsContent>
-      
-      <TabsContent value="analytics">
-        <AnalyticsTab
-          totalTicketsSold={analyticsData.totalTicketsSold}
-          totalRevenue={analyticsData.totalRevenue}
-          averageAttendance={analyticsData.averageAttendance}
-          eventsCount={organizerEvents.length}
-          popularEvents={analyticsData.popularEvents}
-          isLoading={isLoading}
-        />
-      </TabsContent>
-      
-      <TabsContent value="followers">
-        <FollowersTab followers={followers} />
-      </TabsContent>
+      <div className="p-4">
+        <TabsContent value="events">
+          <EventsTab 
+            events={organizerEvents} 
+            isLoading={isLoading} 
+            onRefresh={refreshEvents}
+          />
+        </TabsContent>
+        
+        <TabsContent value="followers">
+          <FollowersTab 
+            followers={followers}
+            isLoading={isLoading}
+          />
+        </TabsContent>
+        
+        <TabsContent value="analytics">
+          <AnalyticsTab 
+            data={analyticsData}
+            isLoading={isLoading}
+          />
+        </TabsContent>
+        
+        <TabsContent value="tickets">
+          <TicketsTab />
+        </TabsContent>
+        
+        <TabsContent value="wallet">
+          <WalletTab 
+            isLoading={isLoading}
+            onRefresh={refreshEvents}
+          />
+        </TabsContent>
+      </div>
     </Tabs>
   );
 };

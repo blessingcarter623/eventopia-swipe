@@ -157,21 +157,45 @@ const TicketsTab = () => {
     
     setIsLoading(true);
     try {
-      // Get all tickets for the selected event with ticket type info and user profiles
-      const { data, error } = await supabase
+      // First get all tickets for the selected event
+      const { data: ticketsData, error: ticketsError } = await supabase
         .from('tickets')
-        .select(`
-          *,
-          ticket_types(name),
-          profiles!tickets_user_id_fkey(display_name)
-        `)
+        .select('*')
         .eq('event_id', selectedEvent);
       
-      if (error) throw error;
+      if (ticketsError) throw ticketsError;
       
-      if (data) {
+      if (ticketsData && ticketsData.length > 0) {
+        // Then fetch ticket type names separately
+        const { data: typesData, error: typesError } = await supabase
+          .from('ticket_types')
+          .select('id, name')
+          .in('id', ticketsData.map(ticket => ticket.ticket_type_id));
+          
+        if (typesError) throw typesError;
+        
+        // Map ticket types to a dictionary for easy lookup
+        const typeMap = {};
+        typesData?.forEach(type => {
+          typeMap[type.id] = type.name;
+        });
+        
+        // Then fetch user profiles separately
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, display_name')
+          .in('id', ticketsData.map(ticket => ticket.user_id));
+          
+        if (profilesError) throw profilesError;
+        
+        // Map profiles to a dictionary for easy lookup
+        const profileMap = {};
+        profilesData?.forEach(profile => {
+          profileMap[profile.id] = profile.display_name;
+        });
+        
         // Format the data to match what the component expects
-        const formattedSales: TicketSale[] = data.map(ticket => ({
+        const formattedSales: TicketSale[] = ticketsData.map(ticket => ({
           id: ticket.id,
           event_id: ticket.event_id,
           ticket_type_id: ticket.ticket_type_id,
@@ -181,11 +205,13 @@ const TicketsTab = () => {
           price: ticket.price,
           checked_in: ticket.checked_in || false,
           checked_in_at: ticket.checked_in_at,
-          ticket_type_name: ticket.ticket_types?.name || 'Unknown',
-          user_name: ticket.profiles?.display_name || 'Unknown User'
+          ticket_type_name: typeMap[ticket.ticket_type_id] || 'Unknown',
+          user_name: profileMap[ticket.user_id] || 'Unknown User'
         }));
         
         setTicketSales(formattedSales);
+      } else {
+        setTicketSales([]);
       }
       
     } catch (error: any) {

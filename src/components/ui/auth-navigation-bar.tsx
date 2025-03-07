@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Home, Search, Ticket, User, Plus, LogIn, Video } from "lucide-react";
+import { Home, Search, LogIn, Video, Plus } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 export function AuthNavigationBar() {

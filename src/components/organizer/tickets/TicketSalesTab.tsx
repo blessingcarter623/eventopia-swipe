@@ -1,9 +1,10 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Filter, Ticket } from "lucide-react";
+import { Filter, Ticket, Search } from "lucide-react";
 import TicketSaleItem from "./TicketSaleItem";
+import { Input } from "@/components/ui/input";
 
 interface TicketSale {
   id: string;
@@ -31,6 +32,24 @@ const TicketSalesTab = ({
   ticketSales, 
   updateCheckinStatus 
 }: TicketSalesTabProps) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterByCheckedIn, setFilterByCheckedIn] = useState<boolean | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // Filter tickets based on search query and checked-in status
+  const filteredTickets = ticketSales.filter(ticket => {
+    // Filter by search query (ticket type name or user name)
+    const matchesSearch = searchQuery === "" || 
+      (ticket.ticket_type_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+       ticket.user_name?.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    // Filter by checked in status
+    const matchesCheckedIn = filterByCheckedIn === null || 
+      ticket.checked_in === filterByCheckedIn;
+    
+    return matchesSearch && matchesCheckedIn;
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -68,21 +87,73 @@ const TicketSalesTab = ({
     <>
       <div className="flex justify-between items-center mb-3">
         <div className="text-sm text-gray-400">
-          <span className="text-white font-bold">{ticketSales.length}</span> tickets sold
+          <span className="text-white font-bold">{filteredTickets.length}</span> tickets sold
         </div>
-        <Button size="sm" variant="outline" className="h-8 gap-1">
+        <Button 
+          size="sm" 
+          variant="outline" 
+          className="h-8 gap-1"
+          onClick={() => setShowFilters(!showFilters)}
+        >
           <Filter className="w-3 h-3" /> Filter
         </Button>
       </div>
       
+      {showFilters && (
+        <div className="bg-darkbg-lighter p-3 rounded-lg border border-gray-700 mb-3 space-y-2">
+          <div className="flex items-center relative">
+            <Search className="w-4 h-4 text-gray-400 absolute left-2" />
+            <Input
+              placeholder="Search by ticket type or purchaser"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 bg-darkbg border-gray-600"
+            />
+          </div>
+          
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              variant={filterByCheckedIn === null ? "default" : "outline"}
+              className={filterByCheckedIn === null ? "bg-neon-yellow text-black" : ""}
+              onClick={() => setFilterByCheckedIn(null)}
+            >
+              All
+            </Button>
+            <Button 
+              size="sm" 
+              variant={filterByCheckedIn === true ? "default" : "outline"}
+              className={filterByCheckedIn === true ? "bg-green-500 text-black" : ""}
+              onClick={() => setFilterByCheckedIn(true)}
+            >
+              Checked In
+            </Button>
+            <Button 
+              size="sm" 
+              variant={filterByCheckedIn === false ? "default" : "outline"}
+              className={filterByCheckedIn === false ? "bg-blue-500 text-black" : ""}
+              onClick={() => setFilterByCheckedIn(false)}
+            >
+              Not Checked In
+            </Button>
+          </div>
+        </div>
+      )}
+      
       <div className="space-y-3">
-        {ticketSales.map((ticket) => (
-          <TicketSaleItem 
-            key={ticket.id} 
-            ticket={ticket} 
-            updateCheckinStatus={updateCheckinStatus} 
-          />
-        ))}
+        {filteredTickets.length > 0 ? (
+          filteredTickets.map((ticket) => (
+            <TicketSaleItem 
+              key={ticket.id} 
+              ticket={ticket} 
+              updateCheckinStatus={updateCheckinStatus} 
+            />
+          ))
+        ) : (
+          <div className="bg-darkbg-lighter p-4 rounded-lg border border-gray-700 text-center">
+            <p className="text-gray-400">No tickets match your filters</p>
+          </div>
+        )}
       </div>
     </>
   );

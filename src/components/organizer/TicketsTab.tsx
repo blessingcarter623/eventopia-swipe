@@ -69,6 +69,32 @@ const TicketsTab = () => {
       fetchTicketSales();
     }
   }, [selectedEvent]);
+
+  // Setup real-time subscription for ticket sales
+  useEffect(() => {
+    if (!selectedEvent) return;
+    
+    const channel = supabase
+      .channel('ticket-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tickets',
+          filter: `event_id=eq.${selectedEvent}`
+        },
+        () => {
+          console.log('Tickets table updated, refreshing sales data');
+          fetchTicketSales();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedEvent]);
   
   const fetchEvents = async () => {
     setIsLoading(true);
@@ -131,25 +157,36 @@ const TicketsTab = () => {
     
     setIsLoading(true);
     try {
+      // Get all tickets for the selected event with ticket type info and user profiles
       const { data, error } = await supabase
         .from('tickets')
         .select(`
           *,
-          events!inner(title),
-          ticket_types!inner(name)
+          ticket_types(name),
+          profiles!tickets_user_id_fkey(display_name)
         `)
         .eq('event_id', selectedEvent);
       
       if (error) throw error;
       
-      const formattedData = data?.map(ticket => ({
-        ...ticket,
-        event_title: ticket.events.title,
-        ticket_type_name: ticket.ticket_types.name,
-        user_name: "User", // In a real app, you would join with profiles table
-      })) || [];
-      
-      setTicketSales(formattedData);
+      if (data) {
+        // Format the data to match what the component expects
+        const formattedSales: TicketSale[] = data.map(ticket => ({
+          id: ticket.id,
+          event_id: ticket.event_id,
+          ticket_type_id: ticket.ticket_type_id,
+          user_id: ticket.user_id,
+          purchase_date: ticket.purchase_date || new Date().toISOString(),
+          status: ticket.status || 'active',
+          price: ticket.price,
+          checked_in: ticket.checked_in || false,
+          checked_in_at: ticket.checked_in_at,
+          ticket_type_name: ticket.ticket_types?.name || 'Unknown',
+          user_name: ticket.profiles?.display_name || 'Unknown User'
+        }));
+        
+        setTicketSales(formattedSales);
+      }
       
     } catch (error: any) {
       console.error("Error fetching ticket sales:", error);

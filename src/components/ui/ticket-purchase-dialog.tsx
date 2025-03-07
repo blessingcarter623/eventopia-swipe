@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -48,6 +48,8 @@ export function TicketPurchaseDialog({ event, isOpen, onClose }: TicketPurchaseD
       setTicketTypes(data || []);
       if (data && data.length > 0) {
         setSelectedTicketId(data[0].id);
+      } else {
+        setSelectedTicketId(null);
       }
     } catch (error) {
       console.error("Error fetching ticket types:", error);
@@ -67,14 +69,23 @@ export function TicketPurchaseDialog({ event, isOpen, onClose }: TicketPurchaseD
     const selectedTicket = ticketTypes.find(ticket => ticket.id === selectedTicketId);
     if (!selectedTicket) return;
 
-    await purchaseTicket(
-      selectedTicket,
-      {
-        id: event.id,
-        title: event.title,
-        organizer_id: event.organizer.id
+    try {
+      await purchaseTicket(
+        selectedTicket,
+        {
+          id: event.id,
+          title: event.title,
+          organizer_id: event.organizer.id
+        }
+      );
+      
+      // Close dialog on successful purchase initiation
+      if (!isLoading) {
+        onClose();
       }
-    );
+    } catch (error) {
+      console.error("Purchase error:", error);
+    }
   };
 
   return (
@@ -82,6 +93,9 @@ export function TicketPurchaseDialog({ event, isOpen, onClose }: TicketPurchaseD
       <DialogContent className="bg-darkbg border-gray-700 text-white">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">Get Tickets</DialogTitle>
+          <DialogDescription className="text-gray-400">
+            Select your ticket type below
+          </DialogDescription>
         </DialogHeader>
 
         {isLoadingTickets ? (

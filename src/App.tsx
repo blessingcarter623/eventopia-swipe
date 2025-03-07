@@ -1,21 +1,15 @@
 
 import React from "react";
-import { Routes, Route, BrowserRouter, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "./integrations/supabase/client";
 import "./App.css";
 import { Toaster } from "@/components/ui/toaster";
-import EventDetailsPage from "./pages/EventDetailsPage";
 import OrganizerDashboard from "./pages/OrganizerDashboard";
 import UserDashboard from "./pages/UserDashboard";
 import CreateEventPage from "./pages/CreateEventPage";
 import EditEventPage from "./pages/EditEventPage";
-import TicketDetailsPage from "./pages/TicketDetailsPage";
-import OrganizerProfilePage from "./pages/OrganizerProfilePage";
-import UserProfilePage from "./pages/UserProfilePage";
-import PaymentSuccessPage from "./pages/PaymentSuccessPage";
-import OrganizerTicketsPage from "./pages/OrganizerTicketsPage";
 import { useAuth } from "./context/AuthContext";
 import OrganizerScannerPage from "./pages/OrganizerScannerPage";
 import EventScannerPage from "./pages/EventScannerPage";
@@ -29,7 +23,7 @@ function App() {
     }
     
     if (!user) {
-      return <Navigate to="/" />;
+      return <Navigate to="/login" />;
     }
     
     if (profile && !allowedRoles.includes(profile.role)) {
@@ -43,10 +37,6 @@ function App() {
     <div className="App">
       <Routes>
         <Route path="/" element={<OrganizerDashboard />} />
-        <Route path="/events/:eventId" element={<EventDetailsPage />} />
-        <Route path="/profile/:id" element={<UserProfilePage />} />
-        <Route path="/organizer/:id" element={<OrganizerProfilePage />} />
-        <Route path="/payment/success" element={<PaymentSuccessPage />} />
         
         <Route
           path="/login"
@@ -84,6 +74,7 @@ function App() {
             </ProtectedRoute>
           } 
         />
+        
         <Route 
           path="/user/dashboard" 
           element={
@@ -92,6 +83,7 @@ function App() {
             </ProtectedRoute>
           } 
         />
+        
         <Route 
           path="/create-event" 
           element={
@@ -100,28 +92,12 @@ function App() {
             </ProtectedRoute>
           } 
         />
+        
         <Route 
           path="/edit-event/:eventId" 
           element={
             <ProtectedRoute allowedRoles={["organizer"]}>
               <EditEventPage />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/tickets" 
-          element={
-            <ProtectedRoute allowedRoles={["user", "organizer"]}>
-              <TicketDetailsPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/event/tickets/:eventId" 
-          element={
-            <ProtectedRoute allowedRoles={["organizer"]}>
-              <OrganizerTicketsPage />
             </ProtectedRoute>
           } 
         />
@@ -135,6 +111,7 @@ function App() {
             </ProtectedRoute>
           } 
         />
+        
         <Route 
           path="/event/scanner/:eventId" 
           element={

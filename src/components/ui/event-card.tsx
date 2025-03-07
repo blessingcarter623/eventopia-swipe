@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Event } from "@/types";
 import { Heart, MessageCircle, Share2, Bookmark, Calendar, MapPin, UserPlus, UserCheck, ChevronDown, Music } from "lucide-react";
@@ -49,7 +48,6 @@ export function EventCard({
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  // Check if description is overflowing
   useEffect(() => {
     if (descriptionRef.current) {
       setIsDescriptionOverflowing(
@@ -58,7 +56,6 @@ export function EventCard({
     }
   }, [event.description]);
 
-  // Check if user has ticket for this event
   useEffect(() => {
     if (user && event.id) {
       const checkUserTicket = async () => {
@@ -80,7 +77,6 @@ export function EventCard({
     }
   }, [user, event.id]);
 
-  // Handle video playback based on card visibility
   useEffect(() => {
     const videoElement = localVideoRef.current;
     if (!videoElement) return;
@@ -99,7 +95,6 @@ export function EventCard({
       setIsVideoPlaying(false);
     }
     
-    // Add play/pause listeners
     const handlePlay = () => setIsVideoPlaying(true);
     const handlePause = () => setIsVideoPlaying(false);
     
@@ -133,7 +128,6 @@ export function EventCard({
         isActive ? "opacity-100" : "opacity-0 pointer-events-none"
       )}
     >
-      {/* Event Media */}
       <div className="absolute inset-0 -z-10">
         {event.media.type === "image" ? (
           <img 
@@ -153,13 +147,12 @@ export function EventCard({
             playsInline
             loop
             preload="auto"
-            controls={isActive} // Add controls when the video is active
+            controls={isActive}
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
       </div>
       
-      {/* Top Bar with User Info */}
       <div className="flex justify-between items-center p-4 z-10 pt-10">
         <div 
           className="flex items-center cursor-pointer" 
@@ -206,7 +199,6 @@ export function EventCard({
         </button>
       </div>
       
-      {/* Right Side Action Icons */}
       <div className="absolute right-4 bottom-1/3 flex flex-col gap-5 z-20">
         <button 
           className="flex flex-col items-center"
@@ -263,7 +255,6 @@ export function EventCard({
         </button>
       </div>
       
-      {/* Event Info at Bottom */}
       <div className="mt-auto z-10 px-4 pb-20">
         <h2 className="text-2xl font-bold text-white mb-2">{event.title}</h2>
         
@@ -327,7 +318,6 @@ export function EventCard({
           </Button>
         </div>
         
-        {/* Music Playing Indicator (TikTok-style) */}
         <div className="flex items-center mt-3 text-white text-xs">
           <div className="flex items-center mr-2">
             <Music className="w-3 h-3 text-neon-yellow mr-1" />
@@ -341,7 +331,6 @@ export function EventCard({
         </div>
       </div>
       
-      {/* Swipe Down Indicator */}
       <div className="absolute left-0 right-0 bottom-4 flex justify-center z-20 pointer-events-none">
         <div className="animate-bounce text-white/70 flex flex-col items-center">
           <span className="text-xs">Swipe for next event</span>
@@ -349,7 +338,6 @@ export function EventCard({
         </div>
       </div>
 
-      {/* Ticket Purchase Dialog */}
       <TicketPurchaseDialog 
         event={event}
         isOpen={showTicketDialog}

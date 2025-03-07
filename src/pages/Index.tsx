@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { EventCard } from "@/components/ui/event-card";
 import { CommentsDrawer } from "@/components/ui/comments-drawer";
@@ -104,6 +103,12 @@ const Index = () => {
       }
     };
     
+    videoRefs.current.forEach((video, idx) => {
+      if (video && idx !== currentIndex) {
+        video.pause();
+      }
+    });
+    
     if (events[currentIndex]?.media.type === "video") {
       const currentVideo = videoRefs.current[currentIndex];
       if (currentVideo) {
@@ -114,13 +119,6 @@ const Index = () => {
     }
     
     preloadNextVideo(currentIndex);
-    
-    if (currentIndex > 0 && events[currentIndex - 1].media.type === "video") {
-      const prevVideo = videoRefs.current[currentIndex - 1];
-      if (prevVideo) {
-        prevVideo.pause();
-      }
-    }
   }, [currentIndex, events]);
   
   const handleSwipe = useCallback((direction: "up" | "down") => {
@@ -153,13 +151,6 @@ const Index = () => {
       isSwiping.current = false;
       setIsSwipeTransitioning(false);
       setSwipeDistance(0);
-      
-      if (events[currentIndex]?.media.type === "video") {
-        const newVideo = videoRefs.current[currentIndex];
-        if (newVideo) {
-          newVideo.play().catch(err => console.log("Video autoplay prevented:", err));
-        }
-      }
     }, 400);
   }, [currentIndex, events, isSwipeTransitioning]);
   

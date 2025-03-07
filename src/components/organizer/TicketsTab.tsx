@@ -2,13 +2,14 @@ import React, { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Ticket } from "lucide-react";
+import { Ticket, Scan } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import EventSelector from "./tickets/EventSelector";
 import TicketTypesTab from "./tickets/TicketTypesTab";
 import TicketSalesTab from "./tickets/TicketSalesTab";
+import QrCodeScanner from "./tickets/QrCodeScanner";
 
 interface TicketType {
   id: string;
@@ -53,6 +54,7 @@ const TicketsTab = () => {
   const [ticketSales, setTicketSales] = useState<TicketSale[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+  const [showScanner, setShowScanner] = useState(false);
   const { profile } = useAuth();
   const { toast } = useToast();
   
@@ -283,6 +285,12 @@ const TicketsTab = () => {
     }
   };
   
+  const handleScanSuccess = async (ticketId: string, eventId: string) => {
+    console.log("Successfully scanned ticket:", ticketId, "for event:", eventId);
+    await updateCheckinStatus(ticketId, true);
+    fetchTicketSales(); // Refresh the ticket sales data
+  };
+  
   if (!profile) {
     return (
       <div className="p-6 text-center">
@@ -310,12 +318,31 @@ const TicketsTab = () => {
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold text-white">Ticket Management</h3>
-        <EventSelector 
-          events={events} 
-          selectedEvent={selectedEvent} 
-          setSelectedEvent={setSelectedEvent} 
-        />
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            className="bg-neon-yellow text-black hover:bg-neon-yellow/90"
+            onClick={() => setShowScanner(prev => !prev)}
+          >
+            <Scan className="w-4 h-4 mr-2" />
+            {showScanner ? "Hide Scanner" : "Scan Tickets"}
+          </Button>
+          <EventSelector 
+            events={events} 
+            selectedEvent={selectedEvent} 
+            setSelectedEvent={setSelectedEvent} 
+          />
+        </div>
       </div>
+      
+      {showScanner && (
+        <div className="mb-6 p-4 bg-darkbg-lighter rounded-lg">
+          <QrCodeScanner 
+            eventId={selectedEvent || undefined}
+            onSuccess={handleScanSuccess}
+          />
+        </div>
+      )}
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid grid-cols-2 bg-darkbg-lighter border border-gray-700 rounded-lg p-1">

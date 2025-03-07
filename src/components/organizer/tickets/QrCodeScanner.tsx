@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import jsQR from "jsqr"; // Import jsQR directly
 
 interface QrCodeScannerProps {
   onSuccess?: (ticketId: string, eventId: string) => void;
@@ -31,32 +32,7 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onSuccess, eventId }) => 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
   
-  // Load the QR scanner library dynamically
-  useEffect(() => {
-    const loadQrScanner = async () => {
-      try {
-        // We'll use a dynamic import to load the QR scanner library
-        const QrScanner = (await import('jsqr')).default;
-        window.QrScanner = QrScanner;
-      } catch (error) {
-        console.error("Failed to load QR scanner library:", error);
-        setCameraError("Failed to load QR scanner library");
-      }
-    };
-    
-    loadQrScanner();
-  }, []);
-  
   const startScanner = async () => {
-    if (!window.QrScanner) {
-      toast({
-        title: "Error",
-        description: "QR scanner library is not loaded yet. Please try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     setCameraError(null);
     setScanning(true);
     
@@ -91,7 +67,7 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onSuccess, eventId }) => 
   };
   
   const scanQrCode = () => {
-    if (!scanning || !videoRef.current || !canvasRef.current || !window.QrScanner) return;
+    if (!scanning || !videoRef.current || !canvasRef.current) return;
     
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -103,7 +79,7 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onSuccess, eventId }) => 
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
       
       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-      const code = window.QrScanner(imageData.data, imageData.width, imageData.height, {
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
         inversionAttempts: "dontInvert",
       });
       
@@ -230,7 +206,7 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onSuccess, eventId }) => 
         onSuccess(scanResult.ticketId, scanResult.eventId);
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error checking in ticket:", error);
       toast({
         title: "Error",

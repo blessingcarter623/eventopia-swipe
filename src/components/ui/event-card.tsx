@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Event } from "@/types";
 import { Heart, MessageCircle, Share2, Bookmark, Calendar, MapPin, UserPlus, UserCheck, ChevronDown, Music } from "lucide-react";
@@ -11,7 +10,7 @@ import { TicketPurchaseDialog } from "./ticket-purchase-dialog";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "./dialog";
 import { Textarea } from "./textarea";
 import { Separator } from "./separator";
@@ -54,7 +53,7 @@ export function EventCard({
   const [showTicketDialog, setShowTicketDialog] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { toast: showToast } = toast();
+  const { toast } = useToast();
   
   useEffect(() => {
     if (descriptionRef.current) {
@@ -90,8 +89,8 @@ export function EventCard({
     if (!videoElement) return;
     
     if (isActive && event.media.type === "video") {
-      videoElement.muted = false; // Allow sound to play
-      videoElement.currentTime = 0; // Start from beginning
+      videoElement.muted = false;
+      videoElement.currentTime = 0;
       videoElement.play()
         .then(() => setIsVideoPlaying(true))
         .catch(err => {
@@ -135,7 +134,6 @@ export function EventCard({
   
   const shareEvent = async () => {
     try {
-      // Check if Web Share API is available
       if (navigator.share) {
         await navigator.share({
           title: event.title,
@@ -145,24 +143,22 @@ export function EventCard({
         
         onShare(event.id);
         setShowShareDialog(false);
-        showToast({
+        toast({
           title: "Shared!",
           description: "Event has been shared successfully",
         });
       } else {
-        // Fallback for browsers that don't support Web Share API
-        // Copy link to clipboard
         await navigator.clipboard.writeText(`${window.location.origin}/event/${event.id}`);
         onShare(event.id);
         setShowShareDialog(false);
-        showToast({
+        toast({
           title: "Link copied!",
           description: "Event link has been copied to clipboard",
         });
       }
     } catch (error) {
       console.error("Error sharing:", error);
-      showToast({
+      toast({
         title: "Sharing failed",
         description: "Could not share the event",
         variant: "destructive"
@@ -393,7 +389,6 @@ export function EventCard({
         onClose={() => setShowTicketDialog(false)}
       />
       
-      {/* Share Dialog */}
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
         <DialogContent className="bg-darkbg border-gray-700 text-white">
           <DialogHeader>
@@ -453,3 +448,4 @@ export function EventCard({
     </div>
   );
 }
+

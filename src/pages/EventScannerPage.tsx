@@ -5,11 +5,13 @@ import { ChevronLeft } from "lucide-react";
 import QrCodeScanner from "@/components/organizer/tickets/QrCodeScanner";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 
 const EventScannerPage = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { loading } = useAuth();
   
   const handleScanSuccess = (ticketId: string, scannedEventId: string) => {
     toast({
@@ -17,6 +19,14 @@ const EventScannerPage = () => {
       description: `Ticket ID: ${ticketId.substring(0, 8)}...`,
     });
   };
+  
+  if (loading) {
+    return (
+      <div className="app-height bg-darkbg flex flex-col items-center justify-center p-4">
+        <div className="text-white">Loading scanner...</div>
+      </div>
+    );
+  }
   
   return (
     <div className="app-height bg-darkbg flex flex-col p-4">
@@ -31,10 +41,16 @@ const EventScannerPage = () => {
         <h1 className="text-xl font-bold text-white">Ticket Scanner</h1>
       </div>
       
-      <QrCodeScanner
-        eventId={eventId}
-        onSuccess={handleScanSuccess}
-      />
+      {eventId ? (
+        <QrCodeScanner
+          eventId={eventId}
+          onSuccess={handleScanSuccess}
+        />
+      ) : (
+        <div className="text-center text-red-500 mt-4">
+          No event ID provided. Please go back and try again.
+        </div>
+      )}
     </div>
   );
 };

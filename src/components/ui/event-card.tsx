@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Event } from "@/types";
 import { Heart, MessageCircle, Share2, Bookmark, Calendar, MapPin, UserPlus, UserCheck, ChevronDown, Music } from "lucide-react";
@@ -7,6 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Button } from "./button";
 import { Badge } from "./badge";
 import { SoundWave } from "./sound-wave";
+import { TicketPurchaseDialog } from "./ticket-purchase-dialog";
 
 interface EventCardProps {
   event: Event;
@@ -40,6 +40,7 @@ export function EventCard({
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const descriptionRef = useRef<HTMLParagraphElement>(null);
   const [isDescriptionOverflowing, setIsDescriptionOverflowing] = useState(false);
+  const [showTicketDialog, setShowTicketDialog] = useState(false);
   
   // Check if description is overflowing
   useEffect(() => {
@@ -274,12 +275,13 @@ export function EventCard({
         
         <div className="flex justify-between items-center">
           <div className="text-neon-yellow font-bold text-xl">
-            {typeof event.price === 'number' ? `$${event.price.toFixed(2)}` : event.price}
+            {typeof event.price === 'number' ? (event.price === 0 ? "Free" : `$${event.price.toFixed(2)}`) : event.price}
           </div>
           <Button 
             className="bg-neon-yellow hover:bg-neon-yellow/90 text-black font-bold px-6 py-2 rounded-full shadow-lg transition-transform duration-200 transform hover:scale-105"
+            onClick={() => setShowTicketDialog(true)}
           >
-            Get Tickets
+            {typeof event.price === 'number' && event.price === 0 ? "RSVP" : "Get Tickets"}
           </Button>
         </div>
         
@@ -304,6 +306,13 @@ export function EventCard({
           <ChevronDown className="w-5 h-5" />
         </div>
       </div>
+
+      {/* Ticket Purchase Dialog */}
+      <TicketPurchaseDialog 
+        event={event}
+        isOpen={showTicketDialog}
+        onClose={() => setShowTicketDialog(false)}
+      />
     </div>
   );
 }

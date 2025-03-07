@@ -254,6 +254,92 @@ export type Database = {
         }
         Relationships: []
       }
+      organizer_wallets: {
+        Row: {
+          balance: number
+          id: string
+          last_updated: string | null
+          organizer_id: string
+        }
+        Insert: {
+          balance?: number
+          id?: string
+          last_updated?: string | null
+          organizer_id: string
+        }
+        Update: {
+          balance?: number
+          id?: string
+          last_updated?: string | null
+          organizer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organizer_wallets_organizer_id_fkey"
+            columns: ["organizer_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_transactions: {
+        Row: {
+          amount: number
+          buyer_id: string
+          event_id: string
+          id: string
+          is_free: boolean | null
+          organizer_id: string
+          payment_date: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          status: string | null
+          ticket_id: string | null
+        }
+        Insert: {
+          amount: number
+          buyer_id: string
+          event_id: string
+          id?: string
+          is_free?: boolean | null
+          organizer_id: string
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          status?: string | null
+          ticket_id?: string | null
+        }
+        Update: {
+          amount?: number
+          buyer_id?: string
+          event_id?: string
+          id?: string
+          is_free?: boolean | null
+          organizer_id?: string
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          status?: string | null
+          ticket_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

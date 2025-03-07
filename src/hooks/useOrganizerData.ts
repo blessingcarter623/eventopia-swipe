@@ -51,8 +51,13 @@ export const useOrganizerData = () => {
           media: {
             type: event.media_type as 'image' | 'video',
             url: event.media_url || 'https://placehold.co/600x400?text=Event',
+            thumbnail: event.thumbnail_url,
           },
           location: event.location || 'TBA',
+          coordinates: {
+            lat: event.location_lat || null,
+            lng: event.location_lng || null,
+          },
           date: event.date || new Date().toISOString(),
           time: event.time || '19:00',
           price: event.price || 'Free',
@@ -75,8 +80,35 @@ export const useOrganizerData = () => {
         setOrganizerEvents(transformedEvents);
       } else {
         // Use mock data for development purposes
-        // In production, you would handle empty states differently
-        setOrganizerEvents([]);
+        const filteredMockEvents = mockEvents.map(event => ({
+          id: event.id,
+          title: event.title,
+          description: event.description,
+          media: {
+            type: event.media_type as 'image' | 'video',
+            url: event.media_url,
+            thumbnail: event.thumbnail_url,
+          },
+          location: event.location,
+          date: event.date,
+          time: event.time,
+          price: event.price,
+          category: event.category,
+          organizer: {
+            id: event.organizer_id,
+            name: "Event Organizer",
+            avatar: "https://placehold.co/100?text=Org",
+            isVerified: true,
+          },
+          stats: {
+            likes: 0,
+            comments: 0,
+            shares: 0,
+            views: 0,
+          },
+          tags: event.tags,
+        }));
+        setOrganizerEvents(filteredMockEvents);
       }
       
     } catch (error: any) {
@@ -87,8 +119,35 @@ export const useOrganizerData = () => {
         variant: "destructive",
       });
       // Fallback to mock data for development
-      const filteredEvents = mockEvents.filter(event => event.organizer.id === profile.id);
-      setOrganizerEvents(filteredEvents);
+      const filteredMockEvents = mockEvents.map(event => ({
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        media: {
+          type: event.media_type as 'image' | 'video',
+          url: event.media_url,
+          thumbnail: event.thumbnail_url,
+        },
+        location: event.location,
+        date: event.date,
+        time: event.time,
+        price: event.price,
+        category: event.category,
+        organizer: {
+          id: event.organizer_id,
+          name: "Event Organizer",
+          avatar: "https://placehold.co/100?text=Org",
+          isVerified: true,
+        },
+        stats: {
+          likes: 0,
+          comments: 0,
+          shares: 0,
+          views: 0,
+        },
+        tags: event.tags,
+      }));
+      setOrganizerEvents(filteredMockEvents);
     } finally {
       setIsLoading(false);
     }
@@ -190,15 +249,19 @@ export const useOrganizerData = () => {
         following: profile.following || 0,
         posts: profile.posts || 0,
         isVerified: profile.is_verified || false,
-        role: profile.role as 'user' | 'organizer',
+        role: (profile.role as 'user' | 'organizer') || 'user',
       });
       
       // Load events and analytics
       fetchEvents();
       fetchAnalyticsData();
       
-      // For development, use mock followers
-      setFollowers(mockUsers.slice(2, 5));
+      // For development, use mock followers with proper typing
+      const typedFollowers: User[] = mockUsers.slice(2, 5).map(user => ({
+        ...user,
+        role: user.role as 'user' | 'organizer'
+      }));
+      setFollowers(typedFollowers);
     }
   }, [profile, fetchEvents, fetchAnalyticsData]);
   

@@ -86,7 +86,7 @@ export function EventCard({
     if (!videoElement) return;
     
     if (isActive && event.media.type === "video") {
-      videoElement.muted = true; // Ensure it can autoplay
+      videoElement.muted = false; // Allow sound to play
       videoElement.currentTime = 0; // Start from beginning
       videoElement.play()
         .then(() => setIsVideoPlaying(true))
@@ -150,10 +150,10 @@ export function EventCard({
             src={event.media.url} 
             poster={event.media.thumbnail} 
             className="w-full h-full object-cover"
-            muted
             playsInline
             loop
             preload="auto"
+            controls={isActive} // Add controls when the video is active
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />

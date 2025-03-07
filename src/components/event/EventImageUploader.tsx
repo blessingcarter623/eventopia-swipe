@@ -93,6 +93,7 @@ const EventImageUploader: React.FC<EventImageUploaderProps> = ({
                 onPause={() => setIsVideoPlaying(false)}
                 onEnded={() => setIsVideoPlaying(false)}
                 playsInline
+                controls // Add controls to enable user to control volume
               />
               <div className="absolute bottom-3 left-3 z-10">
                 {isVideoPlaying && <SoundWave isPlaying={true} />}

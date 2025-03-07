@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { EventCard } from "@/components/ui/event-card";
 import { CommentsDrawer } from "@/components/ui/comments-drawer";
@@ -107,6 +108,7 @@ const Index = () => {
       const currentVideo = videoRefs.current[currentIndex];
       if (currentVideo) {
         currentVideo.load();
+        currentVideo.muted = false; // Ensure sound is enabled
         currentVideo.play().catch(err => console.log("Video autoplay prevented:", err));
       }
     }

@@ -100,7 +100,7 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onSuccess, eventId }) => 
       // Assume the QR data is just the ticket ID
       const ticketId = data.trim();
       
-      // Fetch ticket details
+      // Fetch ticket details - fixing the join to properly access profiles
       const { data: ticketData, error: ticketError } = await supabase
         .from('tickets')
         .select(`
@@ -110,8 +110,7 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onSuccess, eventId }) => 
           user_id, 
           checked_in,
           events(title),
-          ticket_types(name),
-          profiles:user_id(display_name)
+          ticket_types(name)
         `)
         .eq('id', ticketId)
         .single();
@@ -126,34 +125,46 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onSuccess, eventId }) => 
           message: 'Invalid ticket. Ticket not found in database.',
           isCheckedIn: false
         });
-      } else {
-        // Check if the ticket is for the correct event (if eventId is provided)
-        const isForCurrentEvent = !eventId || ticketData.event_id === eventId;
+        setShowResultDialog(true);
+        setScanning(false);
+        return;
+      } 
+      
+      // Now fetch the profile data separately
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', ticketData.user_id)
+        .single();
         
-        if (!isForCurrentEvent) {
-          setScanResult({
-            ticketId: ticketId,
-            eventId: ticketData.event_id,
-            ticketType: ticketData.ticket_types?.name || 'Unknown',
-            userName: ticketData.profiles?.display_name || 'Unknown',
-            isValid: false,
-            message: 'Ticket is for a different event.',
-            isCheckedIn: ticketData.checked_in
-          });
-        } else {
-          setScanResult({
-            ticketId: ticketId,
-            eventId: ticketData.event_id,
-            ticketType: ticketData.ticket_types?.name || 'Unknown',
-            userName: ticketData.profiles?.display_name || 'Unknown',
-            isValid: true,
-            message: ticketData.checked_in ? 'Ticket already checked in.' : 'Valid ticket.',
-            isCheckedIn: ticketData.checked_in
-          });
-          
-          if (onSuccess && !ticketData.checked_in) {
-            onSuccess(ticketId, ticketData.event_id);
-          }
+      const userName = profileError ? 'Unknown User' : (profileData?.display_name || 'Unknown User');
+        
+      // Check if the ticket is for the correct event (if eventId is provided)
+      const isForCurrentEvent = !eventId || ticketData.event_id === eventId;
+      
+      if (!isForCurrentEvent) {
+        setScanResult({
+          ticketId: ticketId,
+          eventId: ticketData.event_id,
+          ticketType: ticketData.ticket_types?.name || 'Unknown',
+          userName: userName,
+          isValid: false,
+          message: 'Ticket is for a different event.',
+          isCheckedIn: ticketData.checked_in
+        });
+      } else {
+        setScanResult({
+          ticketId: ticketId,
+          eventId: ticketData.event_id,
+          ticketType: ticketData.ticket_types?.name || 'Unknown',
+          userName: userName,
+          isValid: true,
+          message: ticketData.checked_in ? 'Ticket already checked in.' : 'Valid ticket.',
+          isCheckedIn: ticketData.checked_in
+        });
+        
+        if (onSuccess && !ticketData.checked_in) {
+          onSuccess(ticketId, ticketData.event_id);
         }
       }
       
@@ -171,6 +182,7 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onSuccess, eventId }) => 
         isCheckedIn: false
       });
       setShowResultDialog(true);
+      setScanning(false);
     }
   };
   

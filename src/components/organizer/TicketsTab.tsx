@@ -6,8 +6,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, CheckCircle, Clock, DollarSign, Filter, Ticket, Users } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Calendar, CheckCircle, Clock, DollarSign, Filter, Ticket, TicketPlus, Users } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
 import { 
   Select,
   SelectContent,
@@ -51,7 +51,9 @@ interface Event {
 }
 
 const TicketsTab = () => {
-  const [activeTab, setActiveTab] = useState("types");
+  const [searchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabFromUrl === "tickets" ? "types" : "types");
   const [isLoading, setIsLoading] = useState(true);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
   const [ticketSales, setTicketSales] = useState<TicketSale[]>([]);
@@ -263,23 +265,34 @@ const TicketsTab = () => {
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold text-white">Ticket Management</h3>
         
-        {events.length > 0 && (
-          <Select
-            value={selectedEvent || undefined}
-            onValueChange={(value) => setSelectedEvent(value)}
-          >
-            <SelectTrigger className="w-[180px] bg-darkbg-lighter border-gray-700">
-              <SelectValue placeholder="Select event" />
-            </SelectTrigger>
-            <SelectContent className="bg-darkbg-lighter border-gray-700">
-              {events.map((event) => (
-                <SelectItem key={event.id} value={event.id} className="text-white">
-                  {event.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+        <div className="flex items-center gap-2">
+          {events.length > 0 && (
+            <Select
+              value={selectedEvent || undefined}
+              onValueChange={(value) => setSelectedEvent(value)}
+            >
+              <SelectTrigger className="w-[180px] bg-darkbg-lighter border-gray-700">
+                <SelectValue placeholder="Select event" />
+              </SelectTrigger>
+              <SelectContent className="bg-darkbg-lighter border-gray-700">
+                {events.map((event) => (
+                  <SelectItem key={event.id} value={event.id} className="text-white">
+                    {event.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          
+          {selectedEvent && (
+            <Link to={`/event/tickets/${selectedEvent}`}>
+              <Button size="sm" className="h-10 bg-neon-yellow text-black hover:bg-neon-yellow/90">
+                <TicketPlus className="mr-2 h-4 w-4" />
+                Manage Tickets
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

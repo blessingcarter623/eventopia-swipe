@@ -1,8 +1,9 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import Index from "./pages/Index";
 import Discover from "./pages/Discover";
@@ -69,6 +70,16 @@ function App() {
               <Route path="/event/edit/:eventId" element={
                 <ProtectedRoute>
                   <EditEventPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/event/tickets/:eventId" element={
+                <ProtectedRoute>
+                  <EditEventPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/event/tickets" element={
+                <ProtectedRoute requiredRole="organizer">
+                  <Navigate to="/organizer/dashboard?tab=tickets" replace />
                 </ProtectedRoute>
               } />
               <Route path="/livestreams" element={<LivestreamsList />} />

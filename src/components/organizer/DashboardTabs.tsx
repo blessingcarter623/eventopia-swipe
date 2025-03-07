@@ -119,11 +119,14 @@ const DashboardTabs = () => {
       <TabsContent value="followers" className="mt-6">
         <FollowersTab 
           followers={followers} 
+          isLoading={isLoading}
         />
       </TabsContent>
       
       <TabsContent value="analytics" className="mt-6">
-        <AnalyticsTab />
+        <AnalyticsTab 
+          isLoading={isLoading}
+        />
       </TabsContent>
       
       <TabsContent value="tickets" className="mt-6">

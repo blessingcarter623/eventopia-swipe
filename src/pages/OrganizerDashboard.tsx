@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { NavigationBar } from "@/components/ui/navigation-bar";
 import DashboardHeader from "@/components/organizer/DashboardHeader";
 import OrganizerProfile from "@/components/organizer/OrganizerProfile";
@@ -9,14 +9,10 @@ import DashboardLoading from "@/components/organizer/DashboardLoading";
 import { useOrganizerData } from "@/hooks/useOrganizerData";
 
 const OrganizerDashboard = () => {
-  const [activeTab, setActiveTab] = useState('events');
   const { 
     isLoading, 
     organizer, 
-    organizerEvents, 
-    followers, 
-    analyticsData,
-    fetchEvents
+    organizerEvents,
   } = useOrganizerData();
   
   if (!organizer) {
@@ -39,15 +35,7 @@ const OrganizerDashboard = () => {
         />
         
         {/* Dashboard Tabs */}
-        <DashboardTabs 
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          organizerEvents={organizerEvents}
-          followers={followers}
-          analyticsData={analyticsData}
-          isLoading={isLoading}
-          refreshEvents={fetchEvents}
-        />
+        <DashboardTabs />
       </div>
       
       <NavigationBar />

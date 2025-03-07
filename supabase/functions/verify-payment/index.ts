@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     
     if (!reference) {
       return new Response(
-        JSON.stringify({ error: 'Missing payment reference' }),
+        JSON.stringify({ error: 'Missing payment reference', success: false }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     if (!PAYSTACK_SECRET) {
       console.error('Paystack secret key not found')
       return new Response(
-        JSON.stringify({ error: 'Payment provider configuration missing' }),
+        JSON.stringify({ error: 'Payment provider configuration missing', success: false }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -171,8 +171,8 @@ Deno.serve(async (req) => {
         console.log('Transaction created:', transactionData)
       }
       
-      // Update organizer wallet balance
-      const { error: walletError } = await supabase.rpc('update_organizer_balance', { 
+      // Update organizer wallet balance using the RPC function
+      const { data: walletData, error: walletError } = await supabase.rpc('update_organizer_balance', { 
         p_organizer_id: organizerId,
         p_amount: amount
       })
@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
       if (walletError) {
         console.error('Error updating organizer balance:', walletError)
       } else {
-        console.log('Organizer balance updated')
+        console.log('Organizer balance updated successfully:', walletData)
       }
       
       return new Response(

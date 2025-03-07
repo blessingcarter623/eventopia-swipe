@@ -124,22 +124,26 @@ const WalletTab: React.FC<WalletTabProps> = ({ isLoading, onRefresh }) => {
     setIsProcessing(true);
     
     try {
+      // Create a dummy event ID for the withdrawal transaction
+      const dummyEventId = '00000000-0000-0000-0000-000000000000';
+      
       // Create withdrawal transaction record
       const { error: withdrawalError } = await supabase
         .from('payment_transactions')
         .insert({
           organizer_id: profile?.id,
+          buyer_id: profile?.id, // Setting buyer_id to organizer ID for withdrawals
+          event_id: dummyEventId, // Using dummy event ID for withdrawals
           amount: -amount, // Negative amount for withdrawals
           status: 'completed',
           payment_method: 'withdrawal',
-          payment_reference: `WITHDRAW-${Date.now()}`,
-          buyer_id: profile?.id // Setting buyer_id to organizer ID for withdrawals
+          payment_reference: `WITHDRAW-${Date.now()}`
         });
         
       if (withdrawalError) throw withdrawalError;
       
-      // Update wallet balance
-      const { error: walletError } = await supabase.rpc('update_organizer_balance', { 
+      // Update wallet balance using the RPC function
+      const { data, error: walletError } = await supabase.rpc('update_organizer_balance', { 
         p_organizer_id: profile?.id,
         p_amount: -amount // Negative amount to decrease balance
       });

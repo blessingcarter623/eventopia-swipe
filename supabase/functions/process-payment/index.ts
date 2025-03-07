@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     if (!amount || !email || !eventId || !ticketTypeId || !userId) {
       return new Response(
         JSON.stringify({ error: 'Missing required parameters' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
     
@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       console.error('Error fetching ticket type:', ticketTypeError)
       return new Response(
         JSON.stringify({ error: 'Ticket type not found or inactive' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
     
@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     if (ticketTypeData.sold >= ticketTypeData.quantity) {
       return new Response(
         JSON.stringify({ error: 'Tickets sold out' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
     
@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
       console.error('Price mismatch:', { expected: ticketTypeData.price, received: amount })
       return new Response(
         JSON.stringify({ error: 'Price mismatch' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
     
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
         console.error('Error creating free ticket:', ticketError)
         return new Response(
           JSON.stringify({ error: ticketError.message }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
       
@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
       console.error('Paystack secret key not found')
       return new Response(
         JSON.stringify({ error: 'Payment provider configuration missing' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
     

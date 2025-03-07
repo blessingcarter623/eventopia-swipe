@@ -506,7 +506,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_organizer_balance: {
+        Args: {
+          p_organizer_id: string
+          p_amount: number
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

@@ -32,13 +32,50 @@ Deno.serve(async (req) => {
       )
     }
     
+    console.log('Processing payment request:', { amount, email, eventId, ticketTypeId, userId })
+    
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     
+    // Check if ticket type exists and is active
+    const { data: ticketTypeData, error: ticketTypeError } = await supabase
+      .from('ticket_types')
+      .select('*')
+      .eq('id', ticketTypeId)
+      .eq('is_active', true)
+      .single()
+      
+    if (ticketTypeError || !ticketTypeData) {
+      console.error('Error fetching ticket type:', ticketTypeError)
+      return new Response(
+        JSON.stringify({ error: 'Ticket type not found or inactive' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
+    // Check if ticket quantity is available
+    if (ticketTypeData.sold >= ticketTypeData.quantity) {
+      return new Response(
+        JSON.stringify({ error: 'Tickets sold out' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
+    // Verify that the amount matches ticket price
+    if (ticketTypeData.price !== amount) {
+      console.error('Price mismatch:', { expected: ticketTypeData.price, received: amount })
+      return new Response(
+        JSON.stringify({ error: 'Price mismatch' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
     // For free tickets, create ticket directly without payment
     if (amount === 0) {
+      console.log('Processing free ticket')
+      
       // Create a ticket
       const { data: ticketData, error: ticketError } = await supabase
         .from('tickets')
@@ -60,6 +97,12 @@ Deno.serve(async (req) => {
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
+      
+      // Increment the sold count for the ticket type
+      await supabase
+        .from('ticket_types')
+        .update({ sold: supabase.rpc('increment', { inc: 1 }) })
+        .eq('id', ticketTypeId)
       
       // Create transaction record
       await supabase
@@ -95,28 +138,36 @@ Deno.serve(async (req) => {
       )
     }
     
+    console.log('Initializing Paystack payment')
+    
     // Initialize Paystack payment with currency set to ZAR (South African Rand)
+    const paystackPayload = {
+      amount: Math.round(amount * 100), // Convert to lowest currency unit (cents)
+      email,
+      callback_url: callbackUrl,
+      currency: 'ZAR', // Set currency to South African Rand
+      metadata: {
+        ...metadata,
+        userId,
+        eventId,
+        ticketTypeId
+      }
+    }
+    
+    console.log('Paystack payload:', paystackPayload)
+    
     const response = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${PAYSTACK_SECRET}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        amount: amount * 100, // Convert to kobo/cents
-        email,
-        callback_url: callbackUrl,
-        currency: 'ZAR', // Set currency to South African Rand
-        metadata: {
-          ...metadata,
-          userId,
-          eventId,
-          ticketTypeId
-        }
-      })
+      body: JSON.stringify(paystackPayload)
     })
     
     const data = await response.json()
+    
+    console.log('Paystack response:', data)
     
     if (!data.status) {
       console.error('Paystack error:', data)

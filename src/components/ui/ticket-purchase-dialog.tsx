@@ -101,7 +101,7 @@ export function TicketPurchaseDialog({ event, isOpen, onClose }: TicketPurchaseD
                     </div>
                   </div>
                   <div className="text-neon-yellow font-bold">
-                    {ticket.price === 0 ? "Free" : `$${ticket.price.toFixed(2)}`}
+                    {ticket.price === 0 ? "Free" : `R ${ticket.price.toFixed(2)}`}
                   </div>
                 </div>
               ))}

@@ -60,13 +60,18 @@ export const useTicketPurchase = () => {
         }
       };
       
+      console.log("Sending payment request with payload:", payload);
+      
       const { data, error } = await supabase.functions.invoke("process-payment", {
         body: payload
       });
       
       if (error) {
+        console.error("Error invoking process-payment function:", error);
         throw error;
       }
+      
+      console.log("Payment process response:", data);
       
       if (data.success) {
         if (data.paymentUrl) {
@@ -99,13 +104,18 @@ export const useTicketPurchase = () => {
     try {
       setIsLoading(true);
       
+      console.log("Verifying payment with reference:", reference);
+      
       const { data, error } = await supabase.functions.invoke("verify-payment", {
         body: { reference }
       });
       
       if (error) {
+        console.error("Error invoking verify-payment function:", error);
         throw error;
       }
+      
+      console.log("Payment verification response:", data);
       
       if (data.success) {
         toast({

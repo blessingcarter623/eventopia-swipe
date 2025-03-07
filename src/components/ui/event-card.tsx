@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Event } from "@/types";
 import { Heart, MessageCircle, Share2, Bookmark, Calendar, MapPin, UserPlus, UserCheck, ChevronDown, Music } from "lucide-react";
@@ -10,6 +11,10 @@ import { TicketPurchaseDialog } from "./ticket-purchase-dialog";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "./dialog";
+import { Textarea } from "./textarea";
+import { Separator } from "./separator";
 
 interface EventCardProps {
   event: Event;
@@ -41,12 +46,15 @@ export function EventCard({
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [hasTicket, setHasTicket] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [shareNote, setShareNote] = useState("");
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const descriptionRef = useRef<HTMLParagraphElement>(null);
   const [isDescriptionOverflowing, setIsDescriptionOverflowing] = useState(false);
   const [showTicketDialog, setShowTicketDialog] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast: showToast } = toast();
   
   useEffect(() => {
     if (descriptionRef.current) {
@@ -117,8 +125,49 @@ export function EventCard({
     onBookmark(event.id);
   };
   
+  const handleShare = () => {
+    setShowShareDialog(true);
+  };
+  
   const navigateToUserProfile = () => {
     navigate(`/user/${event.organizer.id}`);
+  };
+  
+  const shareEvent = async () => {
+    try {
+      // Check if Web Share API is available
+      if (navigator.share) {
+        await navigator.share({
+          title: event.title,
+          text: shareNote || `Check out ${event.title}!`,
+          url: `${window.location.origin}/event/${event.id}`
+        });
+        
+        onShare(event.id);
+        setShowShareDialog(false);
+        showToast({
+          title: "Shared!",
+          description: "Event has been shared successfully",
+        });
+      } else {
+        // Fallback for browsers that don't support Web Share API
+        // Copy link to clipboard
+        await navigator.clipboard.writeText(`${window.location.origin}/event/${event.id}`);
+        onShare(event.id);
+        setShowShareDialog(false);
+        showToast({
+          title: "Link copied!",
+          description: "Event link has been copied to clipboard",
+        });
+      }
+    } catch (error) {
+      console.error("Error sharing:", error);
+      showToast({
+        title: "Sharing failed",
+        description: "Could not share the event",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -229,7 +278,7 @@ export function EventCard({
         
         <button 
           className="flex flex-col items-center"
-          onClick={() => onShare(event.id)}
+          onClick={handleShare}
           aria-label="Share event"
         >
           <div className="bg-black/30 w-12 h-12 rounded-full flex items-center justify-center">
@@ -343,6 +392,64 @@ export function EventCard({
         isOpen={showTicketDialog}
         onClose={() => setShowTicketDialog(false)}
       />
+      
+      {/* Share Dialog */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="bg-darkbg border-gray-700 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Share Event</DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="mb-4">
+              <div className="flex items-center gap-3 bg-darkbg-lighter p-3 rounded-lg">
+                {event.media.type === "image" ? (
+                  <img 
+                    src={event.media.url} 
+                    alt={event.title} 
+                    className="w-16 h-16 object-cover rounded-md"
+                  />
+                ) : (
+                  <img 
+                    src={event.media.thumbnail || event.media.url} 
+                    alt={event.title} 
+                    className="w-16 h-16 object-cover rounded-md"
+                  />
+                )}
+                <div>
+                  <h3 className="font-semibold text-white line-clamp-1">{event.title}</h3>
+                  <p className="text-gray-400 text-sm">{new Date(event.date).toLocaleDateString()}</p>
+                  <p className="text-neon-yellow text-sm">
+                    {typeof event.price === 'number' ? (event.price === 0 ? "Free" : `R ${event.price.toFixed(2)}`) : event.price}
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <Separator className="my-4 bg-gray-700" />
+            
+            <div className="mb-4">
+              <label className="text-sm text-gray-400 mb-1 block">Add a note (optional)</label>
+              <Textarea 
+                value={shareNote}
+                onChange={(e) => setShareNote(e.target.value)}
+                placeholder={`Check out ${event.title}!`}
+                className="bg-darkbg-lighter border-gray-700 focus:border-neon-yellow"
+                maxLength={200}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              className="w-full bg-neon-yellow text-black font-semibold hover:bg-neon-yellow/90"
+              onClick={shareEvent}
+            >
+              Share Event <Share2 className="ml-2 w-4 h-4" />
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

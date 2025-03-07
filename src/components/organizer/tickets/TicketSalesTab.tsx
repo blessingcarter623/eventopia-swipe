@@ -2,9 +2,11 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Filter, Ticket, Search } from "lucide-react";
+import { Filter, Ticket, Search, QrCode } from "lucide-react";
 import TicketSaleItem from "./TicketSaleItem";
 import { Input } from "@/components/ui/input";
+import QrCodeScanner from "./QrCodeScanner";
+import { useToast } from "@/hooks/use-toast";
 
 interface TicketSale {
   id: string;
@@ -25,16 +27,20 @@ interface TicketSalesTabProps {
   isLoading: boolean;
   ticketSales: TicketSale[];
   updateCheckinStatus: (ticketId: string, checkedIn: boolean) => Promise<void>;
+  eventId?: string;
 }
 
 const TicketSalesTab = ({ 
   isLoading, 
   ticketSales, 
-  updateCheckinStatus 
+  updateCheckinStatus,
+  eventId
 }: TicketSalesTabProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterByCheckedIn, setFilterByCheckedIn] = useState<boolean | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [showQrScanner, setShowQrScanner] = useState(false);
+  const { toast } = useToast();
   
   // Filter tickets based on search query and checked-in status
   const filteredTickets = ticketSales.filter(ticket => {
@@ -49,6 +55,26 @@ const TicketSalesTab = ({
     
     return matchesSearch && matchesCheckedIn;
   });
+
+  const handleQrScanSuccess = (ticketId: string, scannedEventId: string) => {
+    // Check if the scanned ticket is for this event
+    if (eventId && scannedEventId !== eventId) {
+      toast({
+        title: "Wrong Event",
+        description: "This ticket is for a different event.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Check if the ticket is already in the list
+    const existingTicket = ticketSales.find(ticket => ticket.id === ticketId);
+    
+    // If ticket exists and is not checked in, check it in
+    if (existingTicket && !existingTicket.checked_in) {
+      updateCheckinStatus(ticketId, true);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -73,6 +99,27 @@ const TicketSalesTab = ({
     );
   }
 
+  if (showQrScanner) {
+    return (
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <Button 
+            variant="outline" 
+            className="border-gray-600"
+            onClick={() => setShowQrScanner(false)}
+          >
+            Back to Sales
+          </Button>
+        </div>
+        
+        <QrCodeScanner 
+          onSuccess={handleQrScanSuccess}
+          eventId={eventId}
+        />
+      </div>
+    );
+  }
+
   if (ticketSales.length === 0) {
     return (
       <div className="bg-darkbg-lighter p-6 rounded-lg border border-gray-700 text-center">
@@ -89,14 +136,24 @@ const TicketSalesTab = ({
         <div className="text-sm text-gray-400">
           <span className="text-white font-bold">{filteredTickets.length}</span> tickets sold
         </div>
-        <Button 
-          size="sm" 
-          variant="outline" 
-          className="h-8 gap-1"
-          onClick={() => setShowFilters(!showFilters)}
-        >
-          <Filter className="w-3 h-3" /> Filter
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="h-8 gap-1"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter className="w-3 h-3" /> Filter
+          </Button>
+          
+          <Button 
+            size="sm" 
+            className="h-8 gap-1 bg-neon-yellow text-black hover:bg-neon-yellow/90"
+            onClick={() => setShowQrScanner(true)}
+          >
+            <QrCode className="w-3 h-3" /> Scan QR
+          </Button>
+        </div>
       </div>
       
       {showFilters && (

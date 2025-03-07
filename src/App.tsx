@@ -1,120 +1,90 @@
 
-import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
-import { Auth } from "@supabase/auth-ui-react";
-import { ThemeSupa } from "@supabase/auth-ui-shared";
-import { supabase } from "./integrations/supabase/client";
-import "./App.css";
 import { Toaster } from "@/components/ui/toaster";
-import OrganizerDashboard from "./pages/OrganizerDashboard";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "@/context/AuthContext";
+import Index from "./pages/Index";
+import Profile from "./pages/Profile";
+import ProfileEdit from "./pages/ProfileEdit";
+import Tickets from "./pages/Tickets";
+import NotFound from "./pages/NotFound";
+import SignUp from "./pages/SignUp";
+import Login from "./pages/Login";
 import UserDashboard from "./pages/UserDashboard";
+import OrganizerDashboard from "./pages/OrganizerDashboard";
 import CreateEventPage from "./pages/CreateEventPage";
-import EditEventPage from "./pages/EditEventPage";
-import { useAuth } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+import EditEventPage from "@/pages/EditEventPage";
+import UserDetails from "./pages/UserDetails";
+
+const queryClient = new QueryClient();
 
 function App() {
-  const { user, profile, loading } = useAuth();
-  
-  const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles: string[] }) => {
-    if (loading) {
-      return <div className="app-height bg-darkbg flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-yellow"></div>
-      </div>;
-    }
-    
-    if (!user) {
-      return <Navigate to="/login" />;
-    }
-    
-    if (profile && !allowedRoles.includes(profile.role)) {
-      return <Navigate to="/" />;
-    }
-    
-    return <>{children}</>;
-  };
-  
-  // Check if we're still loading auth state
-  if (loading) {
-    return <div className="app-height bg-darkbg flex items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-yellow"></div>
-    </div>;
-  }
-  
   return (
-    <div className="App">
-      <Routes>
-        <Route path="/" element={user ? <OrganizerDashboard /> : <Navigate to="/login" />} />
-        
-        <Route
-          path="/login"
-          element={
-            user ? <Navigate to="/" /> : (
-              <div className="app-height grid place-items-center">
-                <Auth
-                  supabaseClient={supabase}
-                  appearance={{ theme: ThemeSupa }}
-                  providers={['google', 'github']}
-                  redirectTo={`${window.location.origin}/organizer/dashboard`}
-                />
-              </div>
-            )
-          }
-        />
-        
-        <Route
-          path="/register"
-          element={
-            user ? <Navigate to="/" /> : (
-              <div className="app-height grid place-items-center">
-                <Auth
-                  supabaseClient={supabase}
-                  appearance={{ theme: ThemeSupa }}
-                  providers={['google', 'github']}
-                  redirectTo={`${window.location.origin}/organizer/dashboard`}
-                />
-              </div>
-            )
-          }
-        />
-        
-        <Route 
-          path="/organizer/dashboard" 
-          element={
-            <ProtectedRoute allowedRoles={["organizer"]}>
-              <OrganizerDashboard />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/user/dashboard" 
-          element={
-            <ProtectedRoute allowedRoles={["user"]}>
-              <UserDashboard />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/create-event" 
-          element={
-            <ProtectedRoute allowedRoles={["organizer"]}>
-              <CreateEventPage />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/edit-event/:eventId" 
-          element={
-            <ProtectedRoute allowedRoles={["organizer"]}>
-              <EditEventPage />
-            </ProtectedRoute>
-          } 
-        />
-      </Routes>
-      <Toaster />
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } />
+              <Route path="/profile/edit" element={
+                <ProtectedRoute>
+                  <ProfileEdit />
+                </ProtectedRoute>
+              } />
+              <Route path="/tickets" element={
+                <ProtectedRoute>
+                  <Tickets />
+                </ProtectedRoute>
+              } />
+              <Route path="/signup" element={<SignUp />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <UserDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/organizer/dashboard" element={
+                <ProtectedRoute requiredRole="organizer">
+                  <OrganizerDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/create-event" element={
+                <ProtectedRoute requiredRole="organizer">
+                  <CreateEventPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/event/edit/:eventId" element={
+                <ProtectedRoute>
+                  <EditEventPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/event/tickets/:eventId" element={
+                <ProtectedRoute>
+                  <EditEventPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/event/tickets" element={
+                <ProtectedRoute requiredRole="organizer">
+                  <Navigate to="/organizer/dashboard?tab=tickets" replace />
+                </ProtectedRoute>
+              } />
+              <Route path="/user/:userId" element={<UserDetails />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }
 

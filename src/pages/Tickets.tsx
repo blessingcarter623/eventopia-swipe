@@ -2,13 +2,12 @@
 import React, { useState, useEffect } from "react";
 import { NavigationBar } from "@/components/ui/navigation-bar";
 import { Ticket, Calendar, MapPin, ArrowRight, QrCode, Loader2 } from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useTicketPurchase } from "@/hooks/useTicketPurchase";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface TicketData {
   id: string;
@@ -30,11 +29,8 @@ const Tickets = () => {
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
   const [tickets, setTickets] = useState<TicketData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
-  const [showQrDialog, setShowQrDialog] = useState(false);
   const { user } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
   const { verifyPayment } = useTicketPurchase();
   const { toast } = useToast();
   
@@ -123,11 +119,6 @@ const Tickets = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-  
-  const viewTicketDetails = (ticket: TicketData) => {
-    setSelectedTicket(ticket);
-    setShowQrDialog(true);
   };
   
   const upcomingTickets = tickets.filter(ticket => 
@@ -219,16 +210,16 @@ const Tickets = () => {
                       <div>
                         <div className="text-white font-medium">{ticket.ticketType}</div>
                         <div className="text-neon-yellow font-bold">
-                          {ticket.ticketPrice === 0 ? "Free" : `R ${ticket.ticketPrice.toFixed(2)}`}
+                          {ticket.ticketPrice === 0 ? "Free" : `$${ticket.ticketPrice.toFixed(2)}`}
                         </div>
                       </div>
                       
-                      <Button 
-                        onClick={() => viewTicketDetails(ticket)}
+                      <Link 
+                        to={`/ticket/${ticket.id}`}
                         className="bg-neon-yellow text-black px-4 py-2 rounded-lg font-medium flex items-center"
                       >
-                        View Ticket <QrCode className="ml-1 w-4 h-4" />
-                      </Button>
+                        View Ticket <ArrowRight className="ml-1 w-4 h-4" />
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -279,7 +270,7 @@ const Tickets = () => {
                       <div>
                         <div className="text-white font-medium">{ticket.ticketType}</div>
                         <div className="text-gray-400">
-                          {ticket.ticketPrice === 0 ? "Free" : `R ${ticket.ticketPrice.toFixed(2)}`}
+                          {ticket.ticketPrice === 0 ? "Free" : `$${ticket.ticketPrice.toFixed(2)}`}
                         </div>
                       </div>
                       
@@ -301,68 +292,6 @@ const Tickets = () => {
           )}
         </div>
       </div>
-      
-      {/* QR Code Dialog */}
-      <Dialog open={showQrDialog} onOpenChange={setShowQrDialog}>
-        <DialogContent className="bg-darkbg border-gray-700 text-white">
-          <DialogHeader>
-            <DialogTitle className="text-xl">Your Ticket</DialogTitle>
-          </DialogHeader>
-          {selectedTicket && (
-            <div className="py-4">
-              <div className="text-center mb-6">
-                <h3 className="text-xl font-bold text-white mb-1">{selectedTicket.eventTitle}</h3>
-                <p className="text-gray-400">{selectedTicket.ticketType}</p>
-              </div>
-              
-              <div className="bg-white p-6 rounded-lg flex justify-center mb-6">
-                {selectedTicket.qr_code ? (
-                  <img 
-                    src={selectedTicket.qr_code} 
-                    alt="Ticket QR Code" 
-                    className="w-48 h-48"
-                  />
-                ) : (
-                  <QrCode className="w-48 h-48 text-black" />
-                )}
-              </div>
-              
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Event Date:</span>
-                  <span className="text-white font-medium">{new Date(selectedTicket.eventDate).toLocaleDateString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Event Time:</span>
-                  <span className="text-white font-medium">{selectedTicket.eventTime}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Location:</span>
-                  <span className="text-white font-medium">{selectedTicket.eventLocation}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Ticket ID:</span>
-                  <span className="text-white font-medium">{selectedTicket.id.substring(0, 8)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Price:</span>
-                  <span className="text-neon-yellow font-bold">{selectedTicket.ticketPrice === 0 ? "Free" : `R ${selectedTicket.ticketPrice.toFixed(2)}`}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Status:</span>
-                  <span className={`font-medium ${selectedTicket.checked_in ? "text-green-500" : "text-blue-400"}`}>
-                    {selectedTicket.checked_in ? "Checked In" : "Not Checked In"}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="mt-6 text-center">
-                <p className="text-xs text-gray-500">Present this QR code at the event entrance for check-in</p>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
       
       {/* Bottom Navigation */}
       <NavigationBar />

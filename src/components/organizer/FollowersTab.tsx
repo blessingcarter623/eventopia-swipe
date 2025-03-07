@@ -4,10 +4,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, User, UserCheck } from "lucide-react";
-import { User as UserType } from "@/types";
 
 export interface FollowersTabProps {
-  followers: UserType[];
+  followers: any[];
   isLoading?: boolean;
 }
 
@@ -38,13 +37,13 @@ const FollowersTab: React.FC<FollowersTabProps> = ({ followers, isLoading = fals
             <CardContent className="p-4">
               <div className="flex items-center">
                 <Avatar className="h-12 w-12 mr-4">
-                  <AvatarImage src={follower.avatar} alt={follower.displayName} />
+                  <AvatarImage src={follower.avatar} alt={follower.name} />
                   <AvatarFallback className="bg-gray-800">
                     <User className="h-6 w-6 text-gray-400" />
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <h4 className="text-white font-medium">{follower.displayName}</h4>
+                  <h4 className="text-white font-medium">{follower.name}</h4>
                   <p className="text-sm text-gray-400">@{follower.username}</p>
                 </div>
                 <Button 

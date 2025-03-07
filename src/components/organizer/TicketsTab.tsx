@@ -70,6 +70,7 @@ const TicketsTab = () => {
     }
   }, [selectedEvent]);
 
+  // Setup real-time subscription for ticket sales
   useEffect(() => {
     if (!selectedEvent) return;
     
@@ -156,6 +157,7 @@ const TicketsTab = () => {
     
     setIsLoading(true);
     try {
+      // First get all tickets for the selected event
       const { data: ticketsData, error: ticketsError } = await supabase
         .from('tickets')
         .select('*')
@@ -164,6 +166,7 @@ const TicketsTab = () => {
       if (ticketsError) throw ticketsError;
       
       if (ticketsData && ticketsData.length > 0) {
+        // Then fetch ticket type names separately
         const { data: typesData, error: typesError } = await supabase
           .from('ticket_types')
           .select('id, name')
@@ -171,11 +174,13 @@ const TicketsTab = () => {
           
         if (typesError) throw typesError;
         
+        // Map ticket types to a dictionary for easy lookup
         const typeMap = {};
         typesData?.forEach(type => {
           typeMap[type.id] = type.name;
         });
         
+        // Then fetch user profiles separately
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('id, display_name')
@@ -183,11 +188,13 @@ const TicketsTab = () => {
           
         if (profilesError) throw profilesError;
         
+        // Map profiles to a dictionary for easy lookup
         const profileMap = {};
         profilesData?.forEach(profile => {
           profileMap[profile.id] = profile.display_name;
         });
         
+        // Format the data to match what the component expects
         const formattedSales: TicketSale[] = ticketsData.map(ticket => ({
           id: ticket.id,
           event_id: ticket.event_id,
@@ -311,13 +318,11 @@ const TicketsTab = () => {
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold text-white">Ticket Management</h3>
-        <div className="flex items-center gap-2">
-          <EventSelector 
-            events={events} 
-            selectedEvent={selectedEvent} 
-            setSelectedEvent={setSelectedEvent} 
-          />
-        </div>
+        <EventSelector 
+          events={events} 
+          selectedEvent={selectedEvent} 
+          setSelectedEvent={setSelectedEvent} 
+        />
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -350,7 +355,6 @@ const TicketsTab = () => {
             isLoading={isLoading}
             ticketSales={ticketSales}
             updateCheckinStatus={updateCheckinStatus}
-            eventId={selectedEvent}
           />
         </TabsContent>
       </Tabs>

@@ -25,14 +25,12 @@ interface TicketSalesTabProps {
   isLoading: boolean;
   ticketSales: TicketSale[];
   updateCheckinStatus: (ticketId: string, checkedIn: boolean) => Promise<void>;
-  eventId?: string;
 }
 
 const TicketSalesTab = ({ 
   isLoading, 
   ticketSales, 
-  updateCheckinStatus,
-  eventId
+  updateCheckinStatus 
 }: TicketSalesTabProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterByCheckedIn, setFilterByCheckedIn] = useState<boolean | null>(null);
@@ -91,16 +89,14 @@ const TicketSalesTab = ({
         <div className="text-sm text-gray-400">
           <span className="text-white font-bold">{filteredTickets.length}</span> tickets sold
         </div>
-        <div className="flex gap-2">
-          <Button 
-            size="sm" 
-            variant="outline" 
-            className="h-8 gap-1"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="w-3 h-3" /> Filter
-          </Button>
-        </div>
+        <Button 
+          size="sm" 
+          variant="outline" 
+          className="h-8 gap-1"
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <Filter className="w-3 h-3" /> Filter
+        </Button>
       </div>
       
       {showFilters && (

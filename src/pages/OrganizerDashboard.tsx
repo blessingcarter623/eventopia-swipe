@@ -6,7 +6,6 @@ import OrganizerProfile from "@/components/organizer/OrganizerProfile";
 import DashboardTabs from "@/components/organizer/DashboardTabs";
 import DashboardActions from "@/components/organizer/DashboardActions";
 import DashboardLoading from "@/components/organizer/DashboardLoading";
-import FloatingActionButton from "@/components/organizer/FloatingActionButton";
 import { useOrganizerData } from "@/hooks/useOrganizerData";
 
 const OrganizerDashboard = () => {
@@ -38,9 +37,6 @@ const OrganizerDashboard = () => {
         {/* Dashboard Tabs */}
         <DashboardTabs />
       </div>
-      
-      {/* Floating QR Scanner Button */}
-      <FloatingActionButton />
       
       <NavigationBar />
     </div>

@@ -8,6 +8,7 @@ import { Event } from "@/types";
 import { useTicketPurchase, TicketType } from "@/hooks/useTicketPurchase";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface TicketPurchaseDialogProps {
   event: Event;
@@ -20,6 +21,7 @@ export function TicketPurchaseDialog({ event, isOpen, onClose }: TicketPurchaseD
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [isLoadingTickets, setIsLoadingTickets] = useState(true);
   const { purchaseTicket, isLoading } = useTicketPurchase();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (isOpen && event) {
@@ -30,6 +32,8 @@ export function TicketPurchaseDialog({ event, isOpen, onClose }: TicketPurchaseD
   const fetchTicketTypes = async () => {
     try {
       setIsLoadingTickets(true);
+      console.log("Fetching ticket types for event:", event.id);
+      
       const { data, error } = await supabase
         .from('ticket_types')
         .select('*')
@@ -39,12 +43,19 @@ export function TicketPurchaseDialog({ event, isOpen, onClose }: TicketPurchaseD
 
       if (error) throw error;
 
+      console.log("Ticket types fetched:", data);
+      
       setTicketTypes(data || []);
       if (data && data.length > 0) {
         setSelectedTicketId(data[0].id);
       }
     } catch (error) {
       console.error("Error fetching ticket types:", error);
+      toast({
+        title: "Error",
+        description: "Could not load ticket types. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoadingTickets(false);
     }
@@ -119,7 +130,7 @@ export function TicketPurchaseDialog({ event, isOpen, onClose }: TicketPurchaseD
           </Button>
           <Button
             onClick={handlePurchase}
-            disabled={isLoading || isLoadingTickets || !selectedTicketId}
+            disabled={isLoading || isLoadingTickets || ticketTypes.length === 0 || !selectedTicketId}
             className="bg-neon-yellow text-black font-semibold"
           >
             {isLoading ? (

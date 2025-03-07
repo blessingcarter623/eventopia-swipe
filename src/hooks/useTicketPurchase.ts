@@ -44,6 +44,29 @@ export const useTicketPurchase = () => {
     try {
       setIsLoading(true);
       
+      console.log("Starting ticket purchase process for:", {
+        user: user.id,
+        event: event.id,
+        ticketType: ticketType.id,
+        price: ticketType.price
+      });
+      
+      // Check if ticket type is still available and not sold out
+      const { data: latestTicketData, error: ticketCheckError } = await supabase
+        .from('ticket_types')
+        .select('*')
+        .eq('id', ticketType.id)
+        .eq('is_active', true)
+        .single();
+      
+      if (ticketCheckError || !latestTicketData) {
+        throw new Error("This ticket type is no longer available");
+      }
+      
+      if (latestTicketData.sold >= latestTicketData.quantity) {
+        throw new Error("This ticket type is sold out");
+      }
+      
       const callbackUrl = `${window.location.origin}/tickets`;
       
       const payload = {

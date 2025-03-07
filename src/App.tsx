@@ -45,33 +45,37 @@ function App() {
   return (
     <div className="App">
       <Routes>
-        <Route path="/" element={<OrganizerDashboard />} />
+        <Route path="/" element={user ? <OrganizerDashboard /> : <Navigate to="/login" />} />
         
         <Route
           path="/login"
           element={
-            <div className="app-height grid place-items-center">
-              <Auth
-                supabaseClient={supabase}
-                appearance={{ theme: ThemeSupa }}
-                providers={['google', 'github']}
-                redirectTo={`${window.location.origin}/organizer/dashboard`}
-              />
-            </div>
+            user ? <Navigate to="/" /> : (
+              <div className="app-height grid place-items-center">
+                <Auth
+                  supabaseClient={supabase}
+                  appearance={{ theme: ThemeSupa }}
+                  providers={['google', 'github']}
+                  redirectTo={`${window.location.origin}/organizer/dashboard`}
+                />
+              </div>
+            )
           }
         />
         
         <Route
           path="/register"
           element={
-            <div className="app-height grid place-items-center">
-              <Auth
-                supabaseClient={supabase}
-                appearance={{ theme: ThemeSupa }}
-                providers={['google', 'github']}
-                redirectTo={`${window.location.origin}/organizer/dashboard`}
-              />
-            </div>
+            user ? <Navigate to="/" /> : (
+              <div className="app-height grid place-items-center">
+                <Auth
+                  supabaseClient={supabase}
+                  appearance={{ theme: ThemeSupa }}
+                  providers={['google', 'github']}
+                  redirectTo={`${window.location.origin}/organizer/dashboard`}
+                />
+              </div>
+            )
           }
         />
         

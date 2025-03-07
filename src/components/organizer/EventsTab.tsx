@@ -1,10 +1,13 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Plus, CalendarDays, MapPin, Clock, Edit, Trash } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 
 export interface EventsTabProps {
   events: any[];
@@ -13,6 +16,41 @@ export interface EventsTabProps {
 }
 
 const EventsTab: React.FC<EventsTabProps> = ({ events, isLoading, onRefresh }) => {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!confirm("Are you sure you want to delete this event?")) return;
+    
+    setIsDeleting(eventId);
+    try {
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Event deleted",
+        description: "The event has been successfully deleted.",
+      });
+      
+      // Refresh the events list
+      onRefresh();
+    } catch (error: any) {
+      console.error("Error deleting event:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete event",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+  
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-48">
@@ -47,8 +85,8 @@ const EventsTab: React.FC<EventsTabProps> = ({ events, isLoading, onRefresh }) =
         </div>
       ) : (
         <div className="space-y-4">
-          {events.map((event, index) => (
-            <Card key={index} className="bg-darkbg-lighter border-gray-700">
+          {events.map((event) => (
+            <Card key={event.id} className="bg-darkbg-lighter border-gray-700">
               <CardContent className="p-4">
                 <div className="flex flex-col sm:flex-row gap-4">
                   <div className="w-full sm:w-32 h-24 rounded-md overflow-hidden">
@@ -90,22 +128,32 @@ const EventsTab: React.FC<EventsTabProps> = ({ events, isLoading, onRefresh }) =
                     </div>
                     
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <Link to={`/event/edit/${event.id}`}>
+                      <Link to={`/edit-event/${event.id}`}>
                         <Button size="sm" variant="outline" className="h-8 border-gray-700">
                           <Edit className="w-3 h-3 mr-1" />
                           Edit
                         </Button>
                       </Link>
                       
-                      <Link to={`/event/tickets/${event.id}`}>
+                      <Link to={`/event/scanner/${event.id}`}>
                         <Button size="sm" variant="outline" className="h-8 border-gray-700">
                           <Clock className="w-3 h-3 mr-1" />
-                          Tickets
+                          Scanner
                         </Button>
                       </Link>
                       
-                      <Button size="sm" variant="outline" className="h-8 border-gray-700 hover:bg-red-800 hover:text-white hover:border-red-800">
-                        <Trash className="w-3 h-3 mr-1" />
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        disabled={isDeleting === event.id}
+                        onClick={() => handleDeleteEvent(event.id)}
+                        className="h-8 border-gray-700 hover:bg-red-800 hover:text-white hover:border-red-800"
+                      >
+                        {isDeleting === event.id ? (
+                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        ) : (
+                          <Trash className="w-3 h-3 mr-1" />
+                        )}
                         Delete
                       </Button>
                     </div>

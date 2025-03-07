@@ -11,6 +11,7 @@ import AnalyticsTab from "./AnalyticsTab";
 import TicketsTab from "./TicketsTab";
 import WalletTab from "./WalletTab";
 import DashboardLoading from "./DashboardLoading";
+import { useToast } from "@/hooks/use-toast";
 
 const DashboardTabs = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -19,14 +20,22 @@ const DashboardTabs = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [events, setEvents] = useState([]);
   const [followers, setFollowers] = useState([]);
-  const [analyticsData, setAnalyticsData] = useState({});
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const { toast } = useToast();
   
   useEffect(() => {
     if (profile?.id) {
       fetchOrganizerData();
+    } else if (user) {
+      // If we have a user but no profile, something is wrong
+      console.error("User authenticated but no profile found");
+      toast({
+        title: "Profile Error",
+        description: "Your profile information could not be loaded",
+        variant: "destructive"
+      });
     }
-  }, [profile]);
+  }, [profile, user]);
   
   useEffect(() => {
     if (tabFromUrl) {
@@ -37,23 +46,34 @@ const DashboardTabs = () => {
   const fetchOrganizerData = async () => {
     setIsLoading(true);
     try {
+      console.log("Fetching events for organizer ID:", profile?.id);
+      
       // Fetch events
-      const { data: eventsData } = await supabase
+      const { data: eventsData, error } = await supabase
         .from('events')
         .select('*')
         .eq('organizer_id', profile?.id)
         .order('created_at', { ascending: false });
       
+      if (error) {
+        throw error;
+      }
+      
+      console.log("Events fetched:", eventsData?.length || 0);
       setEvents(eventsData || []);
       
       // Fetch followers (mock data for now)
       setFollowers([]);
       
-      // Fetch analytics data (mock data for now)
-      setAnalyticsData({});
-      
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching organizer data:", error);
+      toast({
+        title: "Error loading data",
+        description: error.message || "Could not load your events",
+        variant: "destructive"
+      });
+      // Still clear loading state even if there's an error
+      setEvents([]);
     } finally {
       setIsLoading(false);
     }
@@ -63,6 +83,10 @@ const DashboardTabs = () => {
     setActiveTab(value);
     setSearchParams({ tab: value });
   };
+  
+  if (!user) {
+    return <div className="text-white p-4">Please log in to view your dashboard</div>;
+  }
   
   if (!profile) {
     return <DashboardLoading />;

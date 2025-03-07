@@ -11,8 +11,6 @@ import UserDashboard from "./pages/UserDashboard";
 import CreateEventPage from "./pages/CreateEventPage";
 import EditEventPage from "./pages/EditEventPage";
 import { useAuth } from "./context/AuthContext";
-import OrganizerScannerPage from "./pages/OrganizerScannerPage";
-import EventScannerPage from "./pages/EventScannerPage";
 
 function App() {
   const { user, profile, loading } = useAuth();
@@ -111,25 +109,6 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["organizer"]}>
               <EditEventPage />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* QR Scanner Routes */}
-        <Route 
-          path="/organizer/scanner" 
-          element={
-            <ProtectedRoute allowedRoles={["organizer"]}>
-              <OrganizerScannerPage />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/event/scanner/:eventId" 
-          element={
-            <ProtectedRoute allowedRoles={["organizer"]}>
-              <EventScannerPage />
             </ProtectedRoute>
           } 
         />

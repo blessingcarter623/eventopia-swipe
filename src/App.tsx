@@ -19,7 +19,9 @@ function App() {
   
   const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles: string[] }) => {
     if (loading) {
-      return <div>Loading...</div>; // Replace with a proper loading indicator
+      return <div className="app-height bg-darkbg flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-yellow"></div>
+      </div>;
     }
     
     if (!user) {
@@ -30,8 +32,15 @@ function App() {
       return <Navigate to="/" />;
     }
     
-    return children;
+    return <>{children}</>;
   };
+  
+  // Check if we're still loading auth state
+  if (loading) {
+    return <div className="app-height bg-darkbg flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-yellow"></div>
+    </div>;
+  }
   
   return (
     <div className="App">

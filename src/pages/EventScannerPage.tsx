@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import QrCodeScanner from "@/components/organizer/tickets/QrCodeScanner";
@@ -11,7 +11,18 @@ const EventScannerPage = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { loading } = useAuth();
+  const { loading, user } = useAuth();
+  const [isInitialized, setIsInitialized] = useState(false);
+  
+  useEffect(() => {
+    // Check if user is authenticated after loading completes
+    if (!loading) {
+      setIsInitialized(true);
+      if (!user) {
+        navigate('/login');
+      }
+    }
+  }, [loading, user, navigate]);
   
   const handleScanSuccess = (ticketId: string, scannedEventId: string) => {
     toast({
@@ -20,7 +31,7 @@ const EventScannerPage = () => {
     });
   };
   
-  if (loading) {
+  if (loading || !isInitialized) {
     return (
       <div className="app-height bg-darkbg flex flex-col items-center justify-center p-4">
         <div className="text-white">Loading scanner...</div>
